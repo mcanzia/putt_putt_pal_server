@@ -1,11 +1,11 @@
-import { Player } from "./Player";
+import { PlayerDTO } from "./PlayerDTO";
 
 export class LeaveRoomDetails {
 
-    player: Player;
+    player: PlayerDTO;
     roomCode: string;
 
-    constructor(player : Player, roomCode : string) {
+    constructor(player : PlayerDTO, roomCode : string) {
         this.player = player;
         this.roomCode = roomCode;
     }

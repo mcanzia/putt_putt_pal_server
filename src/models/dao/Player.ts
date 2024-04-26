@@ -1,18 +1,15 @@
 export class Player {
 
-    id: string;
     name: string;
     playerNumber: number;
 
-    constructor(id: string, name : string, playerNumber : number) {
-        this.id = id;
+    constructor(name : string, playerNumber : number) {
         this.name = name;
         this.playerNumber = playerNumber;
     }
 
     toObject?() {
         return {
-            id: this.id,
             name: this.name,
             playerNumber: this.playerNumber
         };

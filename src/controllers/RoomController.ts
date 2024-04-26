@@ -1,9 +1,9 @@
 import { NextFunction, Request, Response } from 'express';
 import Logger from '../util/logs/logger';
 import { RoomDao } from '../dao/RoomDao';
-import { Room } from '../models/Room';
-import { JoinRoomDetails } from '../models/JoinRoomDetails';
-import { CreateRoomDetails } from '../models/CreateRoomDetails';
+import { Room } from '../models/dao/Room';
+import { JoinRoomDetails } from '../models/dao/JoinRoomDetails';
+import { RoomDTO } from '../models/dto/RoomDTO';
 
 export class RoomController {
 
@@ -45,13 +45,39 @@ export class RoomController {
         try {
             Logger.info("Creating new room");
             const roomDao : RoomDao = new RoomDao();
-            const createRoomDetails : CreateRoomDetails = request.body;
-            const roomDetails : Room = Room.createBaseRoom(createRoomDetails.playerName);
-            roomDetails.id = await roomDao.addRoom(roomDetails);
-            Logger.info(`Successfully created room ${roomDetails.roomCode}`);
-            response.status(200).json(JSON.stringify(roomDetails));
+            const roomDetails : Room = Room.createBaseRoom();
+            const newRoom : RoomDTO = await roomDao.addRoom(roomDetails);
+            Logger.info(`Successfully created room ${newRoom.roomCode}`);
+            response.status(200).json(JSON.stringify(newRoom));
         } catch (error) {
             Logger.error("Error creating room", error);
+            response.send(error);
+        }
+    }
+
+    async startGame(request: Request, response: Response, next: NextFunction) {
+        try {
+            Logger.info(`Starting game: ${JSON.stringify(request.body)}`);
+            const roomDao : RoomDao = new RoomDao();
+            const startGameDetails : RoomDTO = request.body;
+            const room : RoomDTO = await roomDao.startGame(startGameDetails);
+            response.status(200).json(JSON.stringify(room));
+        } catch (error) {
+            Logger.error("Error updating room", error);
+            response.send(error);
+        }
+    }
+
+    async updateRoom(request: Request, response: Response, next: NextFunction) {
+        try {
+            Logger.info(`Updating room: ${JSON.stringify(request.body)}`);
+            const roomDao : RoomDao = new RoomDao();
+            const roomId = request.params.roomId;
+            const updateRoomDetails : Room = request.body;
+            const room : Room = await roomDao.updateRoom(roomId, updateRoomDetails);
+            response.status(200).json(JSON.stringify(room));
+        } catch (error) {
+            Logger.error("Error updating room", error);
             response.send(error);
         }
     }
@@ -61,7 +87,7 @@ export class RoomController {
             Logger.info(`Player joining room: ${JSON.stringify(request.body)}`);
             const roomDao : RoomDao = new RoomDao();
             const joinDetails : JoinRoomDetails = request.body;
-            const room : Room = await roomDao.joinRoom(joinDetails);
+            const room : RoomDTO = await roomDao.joinRoom(joinDetails);
             Logger.info("Player successfully joined room");
             response.status(200).json(JSON.stringify(room));
         } catch (error) {
@@ -89,7 +115,7 @@ export class RoomController {
         try {
             Logger.info(`Deleting room ${JSON.stringify(request.body)}`);
             const roomDao : RoomDao = new RoomDao();
-            const room : Room = request.body;
+            const room : RoomDTO = request.body;
             await roomDao.deleteRoom(room.id);
             Logger.info("Successfully deleted room");
             response.status(200).send("Success");
