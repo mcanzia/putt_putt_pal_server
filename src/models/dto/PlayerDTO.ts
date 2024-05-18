@@ -1,20 +1,26 @@
+import { PlayerColor } from "../dao/PlayerColor";
+import { PlayerColorDTO } from "./PlayerColorDTO";
+
 export class PlayerDTO {
 
     id: string;
     name: string;
-    playerNumber: number;
+    isHost: boolean;
+    color: PlayerColorDTO;
 
-    constructor(id: string, name : string, playerNumber : number) {
+    constructor(id: string, name : string, isHost : boolean, color : PlayerColorDTO) {
         this.id = id;
         this.name = name;
-        this.playerNumber = playerNumber;
+        this.isHost = isHost;
+        this.color = color;
     }
 
     toObject?() {
         return {
             id: this.id,
             name: this.name,
-            playerNumber: this.playerNumber
+            isHost: this.isHost,
+            color: this.color.toObject ? this.color.toObject() : this.color
         };
     }
 }

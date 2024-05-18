@@ -4,14 +4,17 @@ exports.JoinRoomDetails = void 0;
 class JoinRoomDetails {
     playerName;
     roomCode;
-    constructor(playerName, roomCode) {
+    isHost;
+    constructor(playerName, roomCode, isHost) {
         this.playerName = playerName;
         this.roomCode = roomCode;
+        this.isHost = isHost;
     }
     toObject() {
         return {
             playerName: this.playerName,
-            roomCode: this.roomCode
+            roomCode: this.roomCode,
+            isHost: this.isHost,
         };
     }
 }

@@ -6,17 +6,13 @@ const CustomError_1 = require("../util/error/CustomError");
 class HoleDao {
     async getHoles(roomId) {
         try {
-            let holes = [];
+            let holes = new Map();
             const holesRef = firebase_1.db.ref(`rooms/${roomId}/holes`);
             const snapshot = await holesRef.once('value');
             if (!snapshot.exists()) {
                 throw new Error('No such room found.');
             }
-            const holesData = snapshot.val();
-            holes = Object.keys(holesData).map(key => ({
-                id: key,
-                ...holesData[key]
-            }));
+            holes = snapshot.val();
             return holes;
         }
         catch (error) {
@@ -31,7 +27,7 @@ class HoleDao {
                 throw new Error('No such hole found in the specified room.');
             }
             const holeData = snapshot.val();
-            return { id: holeId, ...holeData };
+            return { ...holeData };
         }
         catch (error) {
             throw new CustomError_1.DatabaseError("Could not retrieve hole from database: " + error);
@@ -41,6 +37,7 @@ class HoleDao {
         try {
             const holesRef = firebase_1.db.ref(`rooms/${roomId}/holes`);
             const newHolesRef = holesRef.push();
+            hole.id = newHolesRef.key;
             await newHolesRef.set(hole);
             const updatedHoles = this.getHoles(roomId);
             return updatedHoles;

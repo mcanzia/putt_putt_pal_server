@@ -12,5 +12,7 @@ router.get('/:roomId', roomController.getRoomByNumber);
 router.post('/create', roomController.createRoom);
 router.post('/join', roomController.joinRoom);
 router.post('/leave', roomController.leaveRoom);
+router.put('/startGame/:roomId', roomController.startGame);
+router.put('/:roomId', roomController.updateRoom);
 router.delete('/', roomController.deleteRoom);
 exports.default = router;

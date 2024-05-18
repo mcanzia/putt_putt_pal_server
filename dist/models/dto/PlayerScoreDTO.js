@@ -4,17 +4,17 @@ exports.PlayerScoreDTO = void 0;
 class PlayerScoreDTO {
     id;
     score;
-    player;
-    constructor(id, score, player) {
+    playerId;
+    constructor(id, score, playerId) {
         this.id = id;
         this.score = score;
-        this.player = player;
+        this.playerId = playerId;
     }
     toObject() {
         return {
             id: this.id,
             score: this.score,
-            player: this.player.toObject ? this.player.toObject() : this.player
+            playerId: this.playerId
         };
     }
 }

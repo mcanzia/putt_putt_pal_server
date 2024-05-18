@@ -2,21 +2,18 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PlayerDao = void 0;
 const firebase_1 = require("../configs/firebase");
+const PlayerDTO_1 = require("../models/dto/PlayerDTO");
 const CustomError_1 = require("../util/error/CustomError");
 class PlayerDao {
     async getPlayers(roomId) {
         try {
-            let players = [];
+            let players = new Map();
             const playersRef = firebase_1.db.ref(`rooms/${roomId}/players`);
             const snapshot = await playersRef.once('value');
             if (!snapshot.exists()) {
                 throw new Error('No such room found.');
             }
-            const playersData = snapshot.val();
-            players = Object.keys(playersData).map(key => ({
-                id: key,
-                ...playersData[key]
-            }));
+            players = snapshot.val();
             return players;
         }
         catch (error) {
@@ -31,7 +28,7 @@ class PlayerDao {
                 throw new Error('No such player found in the specified room.');
             }
             const playerData = snapshot.val();
-            return { id: playerId, ...playerData };
+            return new PlayerDTO_1.PlayerDTO(playerId, playerData.name, playerData.isHost, playerData.color);
         }
         catch (error) {
             throw new CustomError_1.DatabaseError("Could not retrieve player from database: " + error);
@@ -39,10 +36,12 @@ class PlayerDao {
     }
     async addPlayer(roomId, player) {
         try {
-            const playersRef = firebase_1.db.ref(`rooms/${roomId}/players`);
-            const newPlayersRef = playersRef.push();
-            await newPlayersRef.set(player);
-            const updatedPlayers = this.getPlayers(roomId);
+            const roomsRef = firebase_1.db.ref('rooms');
+            const playersRef = await roomsRef.child(`${roomId}/players`).push();
+            player.id = playersRef.key;
+            console.log(`ADDPLAYER ${JSON.stringify(player)}`);
+            await playersRef.set(player);
+            const updatedPlayers = await this.getPlayers(roomId);
             return updatedPlayers;
         }
         catch (error) {
@@ -51,9 +50,9 @@ class PlayerDao {
     }
     async updatePlayer(roomId, playerId, updatedPlayer) {
         try {
-            const playerRef = firebase_1.db.ref(`rooms/${roomId}/players`);
-            await playerRef.child(playerId).update(updatedPlayer);
-            const updatedPlayers = this.getPlayers(roomId);
+            const playerRef = firebase_1.db.ref(`rooms/${roomId}/players/${playerId}`);
+            await playerRef.update(updatedPlayer);
+            const updatedPlayers = await this.getPlayers(roomId);
             return updatedPlayers;
         }
         catch (error) {
@@ -64,7 +63,7 @@ class PlayerDao {
         try {
             const playerRef = firebase_1.db.ref(`rooms/${roomId}/players/${playerId}`);
             await playerRef.remove();
-            const updatedPlayers = this.getPlayers(roomId);
+            const updatedPlayers = await this.getPlayers(roomId);
             return updatedPlayers;
         }
         catch (error) {

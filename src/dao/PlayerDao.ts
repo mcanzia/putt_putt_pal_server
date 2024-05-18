@@ -1,5 +1,4 @@
 import { db } from '../configs/firebase';
-import { Player } from '../models/dao/Player';
 import { PlayerDTO } from '../models/dto/PlayerDTO';
 import { DatabaseError } from '../util/error/CustomError';
 
@@ -7,7 +6,7 @@ export class PlayerDao {
 
     async getPlayers(roomId: string) {
         try {
-            let players: Array<PlayerDTO> = [];
+            let players: Map<string, PlayerDTO> = new Map();
 
             const playersRef = db.ref(`rooms/${roomId}/players`);
             const snapshot = await playersRef.once('value');
@@ -16,20 +15,15 @@ export class PlayerDao {
                 throw new Error('No such room found.');
             }
 
-            const playersData = snapshot.val();
-            players = Object.keys(playersData).map(key => ({
-                id: key,
-                ...playersData[key]
-            }));
+            players = snapshot.val();
 
-            
             return players;
         } catch (error) {
             throw new DatabaseError("Could not retrieve players from database: " + error);
         }
     }
 
-    async getPlayerById(roomId: string, playerId: string) {
+    async getPlayerById(roomId: string, playerId: string): Promise<PlayerDTO> {
         try {
             const playerRef = db.ref(`rooms/${roomId}/players/${playerId}`);
             const snapshot = await playerRef.once('value');
@@ -39,50 +33,57 @@ export class PlayerDao {
             }
 
             const playerData = snapshot.val();
-            return { id: playerId, ...playerData };
+            return new PlayerDTO(
+                playerId,
+                playerData.name,
+                playerData.isHost,
+                playerData.color
+            );
         } catch (error) {
             throw new DatabaseError("Could not retrieve player from database: " + error);
         }
     }
 
-    async addPlayer(roomId: string, player : Player){
+    async addPlayer(roomId: string, player: PlayerDTO) {
         try {
-            const playersRef = db.ref(`rooms/${roomId}/players`);
-            const newPlayersRef = playersRef.push();
+            const roomsRef = db.ref('rooms');
+            const playersRef = await roomsRef.child(`${roomId}/players`).push();
 
-            await newPlayersRef.set(player);
+            player.id = playersRef.key!;
 
-            const updatedPlayers = this.getPlayers(roomId);
+            console.log(`ADDPLAYER ${JSON.stringify(player)}`);
+
+            await playersRef.set(player);
+
+            const updatedPlayers = await this.getPlayers(roomId);
             return updatedPlayers;
         } catch (error) {
             throw new DatabaseError("Could not add player to database: " + error);
         }
     }
 
-    async updatePlayer(roomId : string, playerId : string, updatedPlayer : Player) {
+    async updatePlayer(roomId: string, playerId: string, updatedPlayer: PlayerDTO): Promise<Map<string, PlayerDTO>> {
         try {
-            const playerRef = db.ref(`rooms/${roomId}/players`);
+            const playerRef = db.ref(`rooms/${roomId}/players/${playerId}`);
 
-            await playerRef.child(playerId).update(updatedPlayer);
+            await playerRef.update(updatedPlayer);
 
-            const updatedPlayers = this.getPlayers(roomId);
+            const updatedPlayers = await this.getPlayers(roomId);
             return updatedPlayers;
-        } catch(error) {
+        } catch (error) {
             throw new DatabaseError("Could not update player details: " + error);
         }
     }
 
-    async deletePlayer(roomId: string, playerId: string) {
+    async deletePlayer(roomId: string, playerId: string): Promise<Map<string, PlayerDTO>> {
         try {
             const playerRef = db.ref(`rooms/${roomId}/players/${playerId}`);
             await playerRef.remove();
 
-            const updatedPlayers = this.getPlayers(roomId);
+            const updatedPlayers = await this.getPlayers(roomId);
             return updatedPlayers;
         } catch (error) {
             throw new DatabaseError("Could not delete player from database: " + error);
         }
     }
-
-
 }

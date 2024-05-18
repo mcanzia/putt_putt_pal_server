@@ -18,9 +18,9 @@ export class RoomController {
         try {
             Logger.info("Retrieving all rooms");
             const roomDao : RoomDao = new RoomDao();
-            const rooms : Array<Room> = await roomDao.getRooms();
+            const rooms : Array<RoomDTO> = await roomDao.getRooms();
             Logger.info("Number of rooms retrieved successfully: " + rooms.length);
-            response.status(200).json(JSON.stringify(rooms));
+            response.status(200).json(rooms);
         } catch (error) {
             Logger.error("Error retrieving rooms");
             response.send(error);
@@ -32,9 +32,9 @@ export class RoomController {
             Logger.info(`Retrieving room with ID: ${request.params.roomId}`);
             const roomDao : RoomDao = new RoomDao();
             const roomNumber : string = request.params.roomNumber;
-            const room : Room = await roomDao.getRoomByNumber(roomNumber);
+            const room : RoomDTO = await roomDao.getRoomByNumber(roomNumber);
             Logger.info(`Room retrieved successfully: ${JSON.stringify(room)}`);
-            response.status(200).json(JSON.stringify(room));
+            response.status(200).json(room);
         } catch (error) {
             Logger.error(`Error retrieving room with ${request.params.roomNumber}`);
             response.send(error);
@@ -45,10 +45,10 @@ export class RoomController {
         try {
             Logger.info("Creating new room");
             const roomDao : RoomDao = new RoomDao();
-            const roomDetails : Room = Room.createBaseRoom();
+            const roomDetails : RoomDTO = RoomDTO.createBaseRoom();
             const newRoom : RoomDTO = await roomDao.addRoom(roomDetails);
             Logger.info(`Successfully created room ${newRoom.roomCode}`);
-            response.status(200).json(JSON.stringify(newRoom));
+            response.status(200).json(newRoom);
         } catch (error) {
             Logger.error("Error creating room", error);
             response.send(error);
@@ -61,7 +61,7 @@ export class RoomController {
             const roomDao : RoomDao = new RoomDao();
             const startGameDetails : RoomDTO = request.body;
             const room : RoomDTO = await roomDao.startGame(startGameDetails);
-            response.status(200).json(JSON.stringify(room));
+            response.status(200).json(room);
         } catch (error) {
             Logger.error("Error updating room", error);
             response.send(error);
@@ -73,9 +73,9 @@ export class RoomController {
             Logger.info(`Updating room: ${JSON.stringify(request.body)}`);
             const roomDao : RoomDao = new RoomDao();
             const roomId = request.params.roomId;
-            const updateRoomDetails : Room = request.body;
-            const room : Room = await roomDao.updateRoom(roomId, updateRoomDetails);
-            response.status(200).json(JSON.stringify(room));
+            const updateRoomDetails : RoomDTO = request.body;
+            const room : RoomDTO = await roomDao.updateRoom(roomId, updateRoomDetails);
+            response.status(200).json(room);
         } catch (error) {
             Logger.error("Error updating room", error);
             response.send(error);
@@ -89,7 +89,7 @@ export class RoomController {
             const joinDetails : JoinRoomDetails = request.body;
             const room : RoomDTO = await roomDao.joinRoom(joinDetails);
             Logger.info("Player successfully joined room");
-            response.status(200).json(JSON.stringify(room));
+            response.status(200).json(room);
         } catch (error) {
             Logger.error("Error joining room: ", error);
             response.send(error);
@@ -101,9 +101,9 @@ export class RoomController {
             Logger.info(`Player leaving room: ${JSON.stringify(request.body)}`);
             const roomDao : RoomDao = new RoomDao();
             const joinDetails : JoinRoomDetails = request.body;
-            const room : Room = await roomDao.joinRoom(joinDetails);
+            const room : RoomDTO = await roomDao.joinRoom(joinDetails);
             Logger.info("Player successfully left room");
-            response.status(200).json(JSON.stringify(room));
+            response.status(200).json(room);
         } catch (error) {
             Logger.error("Error leaving room: ", error);
             response.send(error);

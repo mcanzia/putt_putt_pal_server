@@ -1,25 +1,27 @@
 import { Hole } from "./Hole";
 import { Player } from "./Player";
+import { PlayerColor } from "./PlayerColor";
 
 export class Room {
 
     roomCode: string;
-    players: Array<Player>;
-    holes: Array<Hole>;
+    players: Map<String, Player>;
+    holes: Map<String, Hole>;
     allPlayersJoined: boolean;
     numberOfHoles: number;
+    playerColors: Array<PlayerColor>
 
-
-    constructor(roomCode : string, players: Array<Player>, holes : Array<Hole>, allPlayersJoined: boolean, numberOfHoles: number) {
+    constructor(roomCode : string, players: Map<String, Player>, holes : Map<String, Hole>, allPlayersJoined: boolean, numberOfHoles: number, playerColors: Array<PlayerColor>) {
         this.roomCode = roomCode;
         this.players = players;
         this.holes = holes;
         this.allPlayersJoined = allPlayersJoined;
         this.numberOfHoles = numberOfHoles;
+        this.playerColors = playerColors;
     }
 
     static createBaseRoom() : Room {
-        return new Room(Room.createRandomRoomCode(), [], [], false, 0);
+        return new Room(Room.createRandomRoomCode(), new Map(), new Map(), false, 0, PlayerColor.createBaseColors());
     }
 
     static createRandomRoomCode() : string {
@@ -38,10 +40,11 @@ export class Room {
     toObject?() {
         return {
             roomCode: this.roomCode,
-            players: this.players.map(player => player.toObject ? player.toObject() : player),
-            holes: this.holes.map(hole => hole.toObject ? hole.toObject() : hole),
+            players: Object.fromEntries(this.players),
+            holes: Object.fromEntries(this.holes),
             allPlayersJoined: this.allPlayersJoined,
-            numberOfHoles: this.numberOfHoles
+            numberOfHoles: this.numberOfHoles,
+            playerColors: this.playerColors,
         };
     }
 }

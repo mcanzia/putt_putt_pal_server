@@ -3,15 +3,15 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.PlayerScore = void 0;
 class PlayerScore {
     score;
-    player;
-    constructor(score, player) {
+    playerId;
+    constructor(score, playerId) {
         this.score = score;
-        this.player = player;
+        this.playerId = playerId;
     }
     toObject() {
         return {
             score: this.score,
-            player: this.player.toObject ? this.player.toObject() : this.player
+            playerId: this.playerId
         };
     }
 }

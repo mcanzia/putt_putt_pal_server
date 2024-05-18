@@ -17,8 +17,8 @@ class HoleController {
             logger_1.default.info(`Retrieving all holes for ${roomId}`);
             const holeDao = new HoleDao_1.HoleDao();
             const holes = await holeDao.getHoles(roomId);
-            logger_1.default.info("Number of holes retrieved successfully: " + holes.length);
-            response.status(200).json(JSON.stringify(holes));
+            logger_1.default.info("Number of holes retrieved successfully: " + holes.values.length);
+            response.status(200).json(holes);
         }
         catch (error) {
             logger_1.default.error("Error retrieving holes");
@@ -33,7 +33,7 @@ class HoleController {
             const holeId = request.params.holeId;
             const hole = await holeDao.getHoleById(roomId, holeId);
             logger_1.default.info(`Hole retrieved successfully: ${JSON.stringify(hole)}`);
-            response.status(200).json(JSON.stringify(hole));
+            response.status(200).json(hole);
         }
         catch (error) {
             logger_1.default.error(`Error retrieving hole with id ${request.params.holeId}`);
@@ -48,7 +48,7 @@ class HoleController {
             const hole = request.body;
             const holeList = await holeDao.addHole(roomId, hole);
             logger_1.default.info(`Successfully added hole ${hole.holeNumber}`);
-            response.status(200).json(JSON.stringify(holeList));
+            response.status(200).json(holeList);
         }
         catch (error) {
             logger_1.default.error("Error adding hole", error);
@@ -63,7 +63,7 @@ class HoleController {
             const holeId = request.params.holeId;
             const updateHoleDetails = request.body;
             const holeList = await holeDao.updateHole(roomId, holeId, updateHoleDetails);
-            response.status(200).json(JSON.stringify(holeList));
+            response.status(200).json(holeList);
         }
         catch (error) {
             logger_1.default.error("Error updating hole", error);
@@ -78,7 +78,7 @@ class HoleController {
             const holeId = request.body;
             const holeList = await holeDao.deleteHole(roomId, holeId);
             logger_1.default.info(`Successfully deleted hole ${holeId}`);
-            response.status(200).json(JSON.stringify(holeList));
+            response.status(200).json(holeList);
         }
         catch (error) {
             logger_1.default.error("Error deleting hole", error);

@@ -7,7 +7,7 @@ export class HoleDao {
 
     async getHoles(roomId: string) {
         try {
-            let holes: Array<HoleDTO> = [];
+            let holes: Map<String, HoleDTO> = new Map();
 
             const holesRef = db.ref(`rooms/${roomId}/holes`);
             const snapshot = await holesRef.once('value');
@@ -16,12 +16,7 @@ export class HoleDao {
                 throw new Error('No such room found.');
             }
 
-            const holesData = snapshot.val();
-            holes = Object.keys(holesData).map(key => ({
-                id: key,
-                ...holesData[key]
-            }));
-
+            holes = snapshot.val();
             
             return holes;
         } catch (error) {
@@ -39,16 +34,18 @@ export class HoleDao {
             }
 
             const holeData = snapshot.val();
-            return { id: holeId, ...holeData };
+            return { ...holeData };
         } catch (error) {
             throw new DatabaseError("Could not retrieve hole from database: " + error);
         }
     }
 
-    async addHole(roomId: string, hole : Hole){
+    async addHole(roomId: string, hole : HoleDTO){
         try {
             const holesRef = db.ref(`rooms/${roomId}/holes`);
             const newHolesRef = holesRef.push();
+
+            hole.id = newHolesRef.key!;
 
             await newHolesRef.set(hole);
 
@@ -59,7 +56,7 @@ export class HoleDao {
         }
     }
 
-    async updateHole(roomId : string, holeId : string, updatedHole : Hole) {
+    async updateHole(roomId : string, holeId : string, updatedHole : HoleDTO) {
         try {
             const holeRef = db.ref(`rooms/${roomId}/holes`);
 

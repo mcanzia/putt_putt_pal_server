@@ -4,17 +4,20 @@ exports.PlayerDTO = void 0;
 class PlayerDTO {
     id;
     name;
-    playerNumber;
-    constructor(id, name, playerNumber) {
+    isHost;
+    color;
+    constructor(id, name, isHost, color) {
         this.id = id;
         this.name = name;
-        this.playerNumber = playerNumber;
+        this.isHost = isHost;
+        this.color = color;
     }
     toObject() {
         return {
             id: this.id,
             name: this.name,
-            playerNumber: this.playerNumber
+            isHost: this.isHost,
+            color: this.color.toObject ? this.color.toObject() : this.color
         };
     }
 }

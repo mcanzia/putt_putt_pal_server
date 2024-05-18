@@ -1,17 +1,22 @@
+import { PlayerColor } from "./PlayerColor";
+
 export class Player {
 
     name: string;
-    playerNumber: number;
+    isHost: boolean;
+    color: PlayerColor;
 
-    constructor(name : string, playerNumber : number) {
+    constructor(name : string, isHost : boolean, color : PlayerColor) {
         this.name = name;
-        this.playerNumber = playerNumber;
+        this.isHost = isHost;
+        this.color = color;
     }
 
     toObject?() {
         return {
             name: this.name,
-            playerNumber: this.playerNumber
+            isHost: this.isHost,
+            color: this.color.toObject ? this.color.toObject() : this.color
         };
     }
 }

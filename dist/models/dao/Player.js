@@ -3,15 +3,18 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Player = void 0;
 class Player {
     name;
-    playerNumber;
-    constructor(name, playerNumber) {
+    isHost;
+    color;
+    constructor(name, isHost, color) {
         this.name = name;
-        this.playerNumber = playerNumber;
+        this.isHost = isHost;
+        this.color = color;
     }
     toObject() {
         return {
             name: this.name,
-            playerNumber: this.playerNumber
+            isHost: this.isHost,
+            color: this.color.toObject ? this.color.toObject() : this.color
         };
     }
 }
