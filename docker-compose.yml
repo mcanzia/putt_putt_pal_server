@@ -6,7 +6,7 @@ services:
     env_file:
       - .env.server.production
     environment:
-      - REDIS_HOST=puttputtpal-redis
+      - REDIS_HOST='puttputtpal-redis'
     volumes:
       - /var/log/puttputtpal/all.log:/app/logs/server/all.log
       - /var/log/puttputtpal/error.log:/app/logs/server/error.log
