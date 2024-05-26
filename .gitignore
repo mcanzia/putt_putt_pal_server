@@ -5,3 +5,5 @@ src/configs/serviceAccountKey.json
 .env-server-development
 .env-server-production
 dist/configs/serviceAccountKey.json
+.env.server.development
+.env.server.production
