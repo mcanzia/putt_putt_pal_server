@@ -2,6 +2,7 @@ import { createClient } from 'redis';
 import Logger from './util/logs/logger';
 import cache from 'express-redis-cache';
 
+console.log('Connecting to Redis at:', process.env.REDIS_HOST);
 const redisClient = createClient({
     socket: {
         host: process.env.REDIS_HOST ?? 'localhost',

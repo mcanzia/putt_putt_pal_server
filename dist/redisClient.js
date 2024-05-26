@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const redis_1 = require("redis");
 const logger_1 = __importDefault(require("./util/logs/logger"));
 const express_redis_cache_1 = __importDefault(require("express-redis-cache"));
+console.log('Connecting to Redis at:', process.env.REDIS_HOST);
 const redisClient = (0, redis_1.createClient)({
     socket: {
         host: process.env.REDIS_HOST ?? 'localhost',
