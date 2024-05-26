@@ -8,7 +8,7 @@ const logger_1 = __importDefault(require("./util/logs/logger"));
 const express_redis_cache_1 = __importDefault(require("express-redis-cache"));
 const redisClient = (0, redis_1.createClient)({
     socket: {
-        host: 'localhost',
+        host: process.env.REDIS_HOST ?? 'localhost',
         port: 6379
     },
 });
