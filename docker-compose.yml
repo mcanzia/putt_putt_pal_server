@@ -10,6 +10,8 @@ services:
       - /var/log/puttputtpal/error.log:/app/logs/server/error.log
     networks:
       - puttputtpal_net
+    depends_on:
+      - redis
     ports:
       - "7500:7500"
 
