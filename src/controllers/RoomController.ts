@@ -115,4 +115,19 @@ export class RoomController {
             response.status((error as CustomError).statusCode).send((error as CustomError).message);
         }
     }
+
+    async resetRoom(request : Request, response : Response, next : NextFunction) {
+        try {
+            Logger.info(`Resetting room: ${JSON.stringify(request.params.roomId)}`);
+            const roomId = request.params.roomId;
+            const resetRoomDetails : RoomDTO = request.body;
+            const room : RoomDTO = await this.roomDao.updateRoom(roomId, resetRoomDetails);
+            this.io.to(room.id).emit('resetRoom', room);
+            response.status(200).send();
+        } catch (error) {
+            Logger.error("Error updating room", error);
+            response.status((error as CustomError).statusCode).send((error as CustomError).message);
+        }
+    }
+
 }

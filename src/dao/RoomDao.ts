@@ -1,7 +1,7 @@
 import { db } from '../configs/firebase';
 import { JoinRoomDetails } from '../models/dao/JoinRoomDetails';
 import { LeaveRoomDetails } from '../models/dto/LeaveRoomDetails';
-import { CustomError, DatabaseError, NotFoundError } from '../util/error/CustomError';
+import { CustomError, DatabaseError, DuplicateNameError, NotFoundError } from '../util/error/CustomError';
 import { PlayerDTO } from '../models/dto/PlayerDTO';
 import { RoomDTO } from '../models/dto/RoomDTO';
 import redisClient from '../redisClient';
@@ -200,6 +200,13 @@ export class RoomDao {
                 roomData.numberOfHoles
             );
 
+            for (const player of room.players!.values()) {
+                if (player.name === joinDetails.playerName) {
+                    throw new DuplicateNameError(`Player with the name ${joinDetails.playerName} already exists in the room.`);
+                }
+            }
+
+
             const playerRef = roomsRef.child(`${roomKey}/players`).push();
             const playerData: PlayerDTO = new PlayerDTO(playerRef.key!, joinDetails.playerName, joinDetails.isHost, joinDetails.color);
 
@@ -272,4 +279,5 @@ export class RoomDao {
             throw new DatabaseError("Could not delete room from database: " + error);
         }
     }
+
 }

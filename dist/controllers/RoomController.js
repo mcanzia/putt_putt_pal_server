@@ -131,6 +131,20 @@ let RoomController = class RoomController {
             response.status(error.statusCode).send(error.message);
         }
     }
+    async resetRoom(request, response, next) {
+        try {
+            logger_1.default.info(`Resetting room: ${JSON.stringify(request.params.roomId)}`);
+            const roomId = request.params.roomId;
+            const resetRoomDetails = request.body;
+            const room = await this.roomDao.updateRoom(roomId, resetRoomDetails);
+            this.io.to(room.id).emit('resetRoom', room);
+            response.status(200).send();
+        }
+        catch (error) {
+            logger_1.default.error("Error updating room", error);
+            response.status(error.statusCode).send(error.message);
+        }
+    }
 };
 RoomController = __decorate([
     (0, inversify_1.injectable)(),

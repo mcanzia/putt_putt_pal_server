@@ -12,6 +12,12 @@ export class NotFoundError extends CustomError {
       super(message, 404);
     }
 }
+
+export class DuplicateNameError extends CustomError {
+    constructor(message = 'Duplicate Player Name') {
+      super(message, 303);
+    }
+}
   
 export class InternalServerError extends CustomError {
     constructor(message = 'Internal Server Error') {

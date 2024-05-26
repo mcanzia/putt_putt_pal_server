@@ -15,6 +15,7 @@ router.post('/create', (req, res, next) => roomController.createRoom(req, res, n
 router.post('/join', (req, res, next) => roomController.joinRoom(req, res, next));
 router.post('/leave', (req, res, next) => roomController.leaveRoom(req, res, next));
 router.put('/startGame/:roomId', (req, res, next) => roomController.startGame(req, res, next));
+router.put('/reset/:roomId', (req, res, next) => roomController.resetRoom(req, res, next));
 router.put('/:roomId', (req, res, next) => roomController.updateRoom(req, res, next));
 router.delete('/', (req, res, next) => roomController.deleteRoom(req, res, next));
 

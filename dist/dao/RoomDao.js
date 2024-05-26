@@ -163,6 +163,11 @@ let RoomDao = class RoomDao {
             const roomKey = Object.keys(querySnapshot.val())[0];
             const roomData = querySnapshot.val()[roomKey];
             const room = new RoomDTO_1.RoomDTO(roomKey, roomData.roomCode, new Map(Object.entries(roomData.players || {})), new Map(Object.entries(roomData.holes || {})), roomData.allPlayersJoined, roomData.numberOfHoles);
+            for (const player of room.players.values()) {
+                if (player.name === joinDetails.playerName) {
+                    throw new CustomError_1.DuplicateNameError(`Player with the name ${joinDetails.playerName} already exists in the room.`);
+                }
+            }
             const playerRef = roomsRef.child(`${roomKey}/players`).push();
             const playerData = new PlayerDTO_1.PlayerDTO(playerRef.key, joinDetails.playerName, joinDetails.isHost, joinDetails.color);
             await playerRef.set(playerData);

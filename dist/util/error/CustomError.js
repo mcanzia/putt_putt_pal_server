@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.CustomError = exports.DatabaseError = exports.AuthorizationError = exports.InternalServerError = exports.NotFoundError = void 0;
+exports.CustomError = exports.DatabaseError = exports.AuthorizationError = exports.InternalServerError = exports.DuplicateNameError = exports.NotFoundError = void 0;
 class CustomError extends Error {
     statusCode;
     constructor(message, statusCode) {
@@ -15,6 +15,12 @@ class NotFoundError extends CustomError {
     }
 }
 exports.NotFoundError = NotFoundError;
+class DuplicateNameError extends CustomError {
+    constructor(message = 'Duplicate Player Name') {
+        super(message, 303);
+    }
+}
+exports.DuplicateNameError = DuplicateNameError;
 class InternalServerError extends CustomError {
     constructor(message = 'Internal Server Error') {
         super(message, 500);
