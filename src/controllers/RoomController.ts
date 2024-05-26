@@ -1,112 +1,105 @@
+import { inject, injectable } from 'inversify';
 import { NextFunction, Request, Response } from 'express';
 import Logger from '../util/logs/logger';
 import { RoomDao } from '../dao/RoomDao';
-import { Room } from '../models/dao/Room';
 import { JoinRoomDetails } from '../models/dao/JoinRoomDetails';
 import { RoomDTO } from '../models/dto/RoomDTO';
+import { TYPES } from '../configs/types';
+import { Server } from 'socket.io';
+import { CustomError } from '../util/error/CustomError';
 
+@injectable()
 export class RoomController {
 
-    public roomDao : RoomDao;
-
-    // potentially look into dependency injection container frameworks
-    constructor() {
-        this.roomDao = new RoomDao;
-    }
+    constructor(@inject(TYPES.RoomDao) private roomDao: RoomDao, @inject(TYPES.SocketIO) private io: Server) {}
 
     async getRooms(request : Request, response : Response, next : NextFunction) {
         try {
             Logger.info("Retrieving all rooms");
-            const roomDao : RoomDao = new RoomDao();
-            const rooms : Array<RoomDTO> = await roomDao.getRooms();
-            Logger.info("Number of rooms retrieved successfully: " + rooms.length);
+            const rooms : Array<RoomDTO> = await this.roomDao.getRooms();
             response.status(200).json(rooms);
         } catch (error) {
             Logger.error("Error retrieving rooms");
-            response.send(error);
+            response.status((error as CustomError).statusCode).send((error as CustomError).message);
         }
     }
 
     async getRoomByNumber(request : Request, response : Response, next : NextFunction) {
         try {
             Logger.info(`Retrieving room with ID: ${request.params.roomId}`);
-            const roomDao : RoomDao = new RoomDao();
             const roomNumber : string = request.params.roomNumber;
-            const room : RoomDTO = await roomDao.getRoomByNumber(roomNumber);
-            Logger.info(`Room retrieved successfully: ${JSON.stringify(room)}`);
+            const room : RoomDTO = await this.roomDao.getRoomByNumber(roomNumber);
             response.status(200).json(room);
         } catch (error) {
             Logger.error(`Error retrieving room with ${request.params.roomNumber}`);
-            response.send(error);
+            response.status((error as CustomError).statusCode).send((error as CustomError).message);
         }
     }
 
     async createRoom(request : Request, response : Response, next : NextFunction) {
         try {
             Logger.info("Creating new room");
-            const roomDao : RoomDao = new RoomDao();
             const roomDetails : RoomDTO = RoomDTO.createBaseRoom();
-            const newRoom : RoomDTO = await roomDao.addRoom(roomDetails);
+            const newRoom : RoomDTO = await this.roomDao.addRoom(roomDetails);
             Logger.info(`Successfully created room ${newRoom.roomCode}`);
             response.status(200).json(newRoom);
         } catch (error) {
             Logger.error("Error creating room", error);
-            response.send(error);
+            response.status((error as CustomError).statusCode).send((error as CustomError).message);
         }
     }
 
     async startGame(request: Request, response: Response, next: NextFunction) {
         try {
             Logger.info(`Starting game: ${JSON.stringify(request.body)}`);
-            const roomDao : RoomDao = new RoomDao();
             const startGameDetails : RoomDTO = request.body;
-            const room : RoomDTO = await roomDao.startGame(startGameDetails);
-            response.status(200).json(room);
+            const room : RoomDTO = await this.roomDao.startGame(startGameDetails);
+            this.io.to(room.id).emit('roomUpdated', room);
+            this.io.to(room.id).emit('startGame');
+            response.status(200).send();
         } catch (error) {
             Logger.error("Error updating room", error);
-            response.send(error);
+            response.status((error as CustomError).statusCode).send((error as CustomError).message);
         }
     }
 
     async updateRoom(request: Request, response: Response, next: NextFunction) {
         try {
             Logger.info(`Updating room: ${JSON.stringify(request.body)}`);
-            const roomDao : RoomDao = new RoomDao();
             const roomId = request.params.roomId;
             const updateRoomDetails : RoomDTO = request.body;
-            const room : RoomDTO = await roomDao.updateRoom(roomId, updateRoomDetails);
-            response.status(200).json(room);
+            const room : RoomDTO = await this.roomDao.updateRoom(roomId, updateRoomDetails);
+            this.io.to(room.id).emit('roomUpdated', room);
+            response.status(200).send();
         } catch (error) {
             Logger.error("Error updating room", error);
-            response.send(error);
+            response.status((error as CustomError).statusCode).send((error as CustomError).message);
         }
     }
 
     async joinRoom(request : Request, response : Response, next : NextFunction) {
         try {
             Logger.info(`Player joining room: ${JSON.stringify(request.body)}`);
-            const roomDao : RoomDao = new RoomDao();
             const joinDetails : JoinRoomDetails = request.body;
-            const room : RoomDTO = await roomDao.joinRoom(joinDetails);
-            Logger.info("Player successfully joined room");
-            response.status(200).json(room);
+            const room : RoomDTO = await this.roomDao.joinRoom(joinDetails);
+            this.io.to(room.id).emit('roomUpdated', room.toObject());
+            response.status(200).json(room.toObject());
         } catch (error) {
             Logger.error("Error joining room: ", error);
-            response.send(error);
+            response.status((error as CustomError).statusCode).send((error as CustomError).message);
         }
     }
 
     async leaveRoom(request : Request, response : Response, next : NextFunction) {
         try {
             Logger.info(`Player leaving room: ${JSON.stringify(request.body)}`);
-            const roomDao : RoomDao = new RoomDao();
             const joinDetails : JoinRoomDetails = request.body;
-            const room : RoomDTO = await roomDao.joinRoom(joinDetails);
-            Logger.info("Player successfully left room");
-            response.status(200).json(room);
+            const room : RoomDTO = await this.roomDao.joinRoom(joinDetails);
+            this.io.to(room.id).emit('roomUpdated', room.toObject());
+            response.status(200).json(room.toObject());
         } catch (error) {
             Logger.error("Error leaving room: ", error);
-            response.send(error);
+            response.status((error as CustomError).statusCode).send((error as CustomError).message);
         }
     }
 
@@ -114,14 +107,12 @@ export class RoomController {
     async deleteRoom(request : Request, response : Response, next : NextFunction) {
         try {
             Logger.info(`Deleting room ${JSON.stringify(request.body)}`);
-            const roomDao : RoomDao = new RoomDao();
             const room : RoomDTO = request.body;
-            await roomDao.deleteRoom(room.id);
-            Logger.info("Successfully deleted room");
-            response.status(200).send("Success");
+            await this.roomDao.deleteRoom(room.id);
+            response.status(200).send();
         } catch (error) {
             Logger.error("Error deleting room", error);
-            response.send(error);
+            response.status((error as CustomError).statusCode).send((error as CustomError).message);
         }
     }
 }

@@ -1,6 +1,8 @@
-import express, { Express, NextFunction, Request, Response } from 'express';
+import 'reflect-metadata';
+import { NextFunction, Request, Response } from 'express';
 import cors from 'cors';
-import https from 'https';
+import { app, httpServer } from './socket';
+import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import routes from './routes/index';
 import Logger from './util/logs/logger';
@@ -10,8 +12,10 @@ import { AuthServiceImpl } from './services/AuthService';
 
 var { unless } = require("express-unless");
 
-const app: Express = express();
 const port: number = Number(process.env.VITE_PORT) || 7500;
+
+// Compression
+app.use(compression());
 
 // Security
 app.use(cors());
@@ -42,6 +46,7 @@ app.use(
   ]
 }));
 
+
 //Routes Definitions
 app.use('/api', routes);
 
@@ -50,4 +55,4 @@ app.use((error : CustomError, request : Request, response : Response, next : Nex
   ErrorHandler.handleError(error, response);
 });
 
-app.listen(port, () => console.log(`Server running on port ${port}`));
+httpServer.listen(port, () => console.log(`Server running on port ${port}`));

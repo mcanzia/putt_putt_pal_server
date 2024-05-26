@@ -5,8 +5,6 @@ class CustomError extends Error {
         super(message);
         this.statusCode = statusCode || 400;
     }
-
-    //Object.setPrototypeOf(this, new.target.prototype);
 }
 
 export class NotFoundError extends CustomError {

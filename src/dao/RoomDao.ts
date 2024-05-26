@@ -1,17 +1,26 @@
 import { db } from '../configs/firebase';
 import { JoinRoomDetails } from '../models/dao/JoinRoomDetails';
 import { LeaveRoomDetails } from '../models/dto/LeaveRoomDetails';
-import { DatabaseError } from '../util/error/CustomError';
+import { CustomError, DatabaseError, NotFoundError } from '../util/error/CustomError';
 import { PlayerDTO } from '../models/dto/PlayerDTO';
 import { RoomDTO } from '../models/dto/RoomDTO';
-import { PlayerColorDTO } from '../models/dto/PlayerColorDTO';
+import redisClient from '../redisClient';
 import _ from 'lodash';
 import { PlayerScoreDTO } from '../models/dto/PlayerScoreDTO';
+import { injectable } from 'inversify';
 
+@injectable()
 export class RoomDao {
+    constructor() {}
 
     async getRooms() {
         try {
+            const cacheKey = 'rooms';
+            const cachedRooms = await redisClient.get(cacheKey);
+            if (cachedRooms) {
+                return JSON.parse(cachedRooms);
+            }
+
             const roomsRef = db.ref('rooms');
             const snapshot = await roomsRef.once('value');
             const roomsData = snapshot.val();
@@ -23,10 +32,15 @@ export class RoomDao {
                     const currentRoom = roomsData[key];
                     const room: RoomDTO = new RoomDTO(key, currentRoom.roomCode, 
                         currentRoom.players, currentRoom.holes, currentRoom.allPlayersJoined,
-                        currentRoom.numberOfHoles, currentRoom.playerColors);
+                        currentRoom.numberOfHoles);
                     rooms.push(room);
                 });
             }
+
+            await redisClient.set(cacheKey, JSON.stringify(rooms), {
+                EX: 60
+            });
+
             return rooms;
         } catch (error) {
             throw new DatabaseError("Could not retrieve rooms from database: " + error);
@@ -35,6 +49,12 @@ export class RoomDao {
 
     async getRoomByNumber(roomNumber: string) {
         try {
+            const cacheKey = `room:${roomNumber}`;
+            const cachedRoom = await redisClient.get(cacheKey);
+            if (cachedRoom) {
+                return JSON.parse(cachedRoom);
+            }
+
             const roomsRef = db.ref('rooms');
             const snapshot = await roomsRef.orderByChild('roomNumber').equalTo(roomNumber).once('value');
             const roomObject = snapshot.val();
@@ -46,8 +66,14 @@ export class RoomDao {
             const roomId = Object.keys(roomObject)[0];
             const roomData = roomObject[roomId];
 
-            return new RoomDTO(roomId, roomData.roomCode, roomData.players, roomData.holes, 
-                roomData.allPlayersJoined, roomData.numberOfHoles, roomData.playerColors);
+            const room = new RoomDTO(roomId, roomData.roomCode, roomData.players, roomData.holes, 
+                roomData.allPlayersJoined, roomData.numberOfHoles);
+
+            await redisClient.set(cacheKey, JSON.stringify(room), {
+                EX: 60
+            });
+
+            return room;
         } catch (error) {
             throw new DatabaseError("Could not retrieve room from database: " + error);
         }
@@ -61,6 +87,8 @@ export class RoomDao {
             room.id = newRoomRef.key!;
 
             await newRoomRef.set(room);
+
+            await redisClient.del('rooms');
 
             const newRoomSnapshot = await roomsRef.child(newRoomRef.key!).once('value');
             const newRoom = newRoomSnapshot.val();
@@ -82,8 +110,6 @@ export class RoomDao {
             }
             
             const holesRef = roomsRef.child(`${startGameDetails.id}/holes`);
-
-            console.log(`room.players ${JSON.stringify(room.players)}`);
     
             const newHoles = Array.from({ length: startGameDetails.numberOfHoles }, (_, index) => {
                 const holeNumber = index + 1;
@@ -108,6 +134,9 @@ export class RoomDao {
             await roomsRef.child(startGameDetails.id).update({
                 numberOfHoles: startGameDetails.numberOfHoles
             });
+
+            await redisClient.del(`room:${room.roomCode}`);
+            await redisClient.del('rooms');
     
             const updatedRoomSnapshot = await roomsRef.child(startGameDetails.id).once('value');
             const updatedRoomData = updatedRoomSnapshot.val();
@@ -123,14 +152,14 @@ export class RoomDao {
         try {
             const roomsRef = db.ref('rooms');
             const roomRef = roomsRef.child(roomId);
-    
+
             const roomCopy = _.cloneDeep(updatedRoom);
             if (updatedRoom.players) {
                 delete updatedRoom.players;
             }
 
             await roomRef.update(updatedRoom);
-    
+
             const updates: { [key: string]: any } = {};
 
             Object.entries(roomCopy.players!).forEach(([key, value]) => {
@@ -138,10 +167,13 @@ export class RoomDao {
             });
 
             await db.ref().update(updates);
+
+            await redisClient.del(`room:${roomCopy.roomCode}`);
+            await redisClient.del('rooms');
     
             const updatedRoomSnapshot = await roomRef.once('value');
             const updatedRoomData = updatedRoomSnapshot.val();
-    
+
             return updatedRoomData;
         } catch (error) {
             throw new DatabaseError("Could not update room details: " + error);
@@ -153,22 +185,35 @@ export class RoomDao {
             const roomsRef = db.ref('rooms');
             const querySnapshot = await roomsRef.orderByChild('roomCode').equalTo(joinDetails.roomCode).once('value');
             if (!querySnapshot.exists()) {
-                throw new Error('Room with the specified code does not exist.');
+                throw new NotFoundError('Room with the specified code does not exist.');
             }
 
             const roomKey: string = Object.keys(querySnapshot.val())[0];
-            const room: RoomDTO = querySnapshot.val()[roomKey];
+            const roomData: RoomDTO = querySnapshot.val()[roomKey];
+
+            const room: RoomDTO = new RoomDTO(
+                roomKey,
+                roomData.roomCode,
+                new Map(Object.entries(roomData.players! || {})),
+                new Map(Object.entries(roomData.holes! || {})),
+                roomData.allPlayersJoined,
+                roomData.numberOfHoles
+            );
 
             const playerRef = roomsRef.child(`${roomKey}/players`).push();
-            const playerData: PlayerDTO = new PlayerDTO(playerRef.key!, joinDetails.playerName, joinDetails.isHost, new PlayerColorDTO(0, '0xff000000'));
+            const playerData: PlayerDTO = new PlayerDTO(playerRef.key!, joinDetails.playerName, joinDetails.isHost, joinDetails.color);
 
             await playerRef.set(playerData);
 
             room.players!.set(playerData.id, playerData);
 
+            await redisClient.del(`players:${roomKey}`);
+            await redisClient.del(`room:${room.roomCode}`);
+            await redisClient.del('rooms');
+
             return room;
         } catch (error) {
-            throw new DatabaseError("Could not join room: " + error);
+            throw error;
         }
     }
 
@@ -181,7 +226,16 @@ export class RoomDao {
             }
 
             const roomKey: string = Object.keys(querySnapshot.val())[0];
-            const room: RoomDTO = {roomKey, ...querySnapshot.val()[roomKey]};
+            const roomData: RoomDTO = { roomKey, ...querySnapshot.val()[roomKey] };
+
+            const room: RoomDTO = new RoomDTO(
+                roomKey,
+                roomData.roomCode,
+                new Map(Object.entries(roomData.players || {})),
+                new Map(Object.entries(roomData.holes || {})),
+                roomData.allPlayersJoined,
+                roomData.numberOfHoles
+            );
 
             const playersRef = roomsRef.child(`${roomKey}/players`);
             const playerSnapshot = await playersRef.orderByKey().equalTo(leaveDetails.player.id).once('value');
@@ -193,6 +247,10 @@ export class RoomDao {
             await playersRef.child(leaveDetails.player.id).remove();
 
             room.players!.delete(leaveDetails.player.id);
+
+            await redisClient.del(`players:${roomKey}`);
+            await redisClient.del(`room:${room.roomCode}`);
+            await redisClient.del('rooms');
 
             return room;
         } catch (error) {
@@ -207,6 +265,9 @@ export class RoomDao {
             const roomData = roomSnapshot.val();
 
             await roomRef.remove();
+
+            await redisClient.del(`room:${roomData.roomCode}`);
+            await redisClient.del('rooms');
         } catch (error) {
             throw new DatabaseError("Could not delete room from database: " + error);
         }
