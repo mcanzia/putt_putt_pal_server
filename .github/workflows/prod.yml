@@ -45,4 +45,4 @@ jobs:
           scp ./nginx/nginx.conf root@${{ secrets.DIGITAL_OCEAN_IP }}:/root/devops/nginx.conf
       - name: SSH and Docker Compose Up
         run: |
-          ssh root@${{ secrets.DIGITAL_OCEAN_IP }} 'cd /root/devops && docker-compose pull && docker-compose up -d'
+          ssh root@${{ secrets.DIGITAL_OCEAN_IP }} 'cd /root/devops && docker compose pull && docker compose up -d'
