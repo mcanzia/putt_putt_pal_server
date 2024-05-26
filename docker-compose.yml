@@ -12,6 +12,7 @@ services:
       - puttputtpal_net
     ports:
       - "7500:7500"
+
   redis:
     image: redis:latest
     container_name: puttputtpal-redis
@@ -26,3 +27,8 @@ services:
 networks:
   puttputtpal_net:
     driver: bridge
+  redis-network:
+    driver: bridge
+
+volumes:
+  redis-data:
