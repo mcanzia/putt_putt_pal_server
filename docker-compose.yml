@@ -1,20 +1,5 @@
 version: '3.8'
 services:
-  api:
-    container_name: puttputtpal-server
-    image: index.docker.io/mcanziani1/puttputtpal-server:latest
-    env_file:
-      - .env.server.production
-    environment:
-      - REDIS_HOST=puttputtpal-redis
-    volumes:
-      - /var/log/puttputtpal/all.log:/app/logs/server/all.log
-      - /var/log/puttputtpal/error.log:/app/logs/server/error.log
-    networks:
-      - puttputtpal_net
-    ports:
-      - "7500:7500"
-
   redis:
     image: redis:latest
     container_name: puttputtpal-redis
@@ -26,6 +11,20 @@ services:
     command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
     networks:
       - puttputtpal_net
+  api:
+    container_name: puttputtpal-server
+    image: index.docker.io/mcanziani1/puttputtpal-server:latest
+    env_file:
+      - .env.server.production
+    environment:
+      - REDIS_HOST=redis
+    volumes:
+      - /var/log/puttputtpal/all.log:/app/logs/server/all.log
+      - /var/log/puttputtpal/error.log:/app/logs/server/error.log
+    networks:
+      - puttputtpal_net
+    ports:
+      - "7500:7500"
   nginx:
     image: nginx:latest
     ports:
