@@ -4,7 +4,7 @@ import { LeaveRoomDetails } from '../models/dto/LeaveRoomDetails';
 import { CustomError, DatabaseError, DuplicateNameError, NotFoundError } from '../util/error/CustomError';
 import { PlayerDTO } from '../models/dto/PlayerDTO';
 import { RoomDTO } from '../models/dto/RoomDTO';
-import redisClient from '../redisClient';
+import { deleteCachedValue, getCachedValue, setCachedValue } from '../util/cache/useCache';
 import _ from 'lodash';
 import { PlayerScoreDTO } from '../models/dto/PlayerScoreDTO';
 import { injectable } from 'inversify';
@@ -16,7 +16,7 @@ export class RoomDao {
     async getRooms() {
         try {
             const cacheKey = 'rooms';
-            const cachedRooms = await redisClient.get(cacheKey);
+            const cachedRooms = await getCachedValue(cacheKey);
             if (cachedRooms) {
                 return JSON.parse(cachedRooms);
             }
@@ -37,7 +37,7 @@ export class RoomDao {
                 });
             }
 
-            await redisClient.set(cacheKey, JSON.stringify(rooms), {
+            await setCachedValue(cacheKey, JSON.stringify(rooms), {
                 EX: 60
             });
 
@@ -50,7 +50,7 @@ export class RoomDao {
     async getRoomByNumber(roomNumber: string) {
         try {
             const cacheKey = `room:${roomNumber}`;
-            const cachedRoom = await redisClient.get(cacheKey);
+            const cachedRoom = await getCachedValue(cacheKey);
             if (cachedRoom) {
                 return JSON.parse(cachedRoom);
             }
@@ -69,7 +69,7 @@ export class RoomDao {
             const room = new RoomDTO(roomId, roomData.roomCode, roomData.players, roomData.holes, 
                 roomData.allPlayersJoined, roomData.numberOfHoles);
 
-            await redisClient.set(cacheKey, JSON.stringify(room), {
+            await setCachedValue(cacheKey, JSON.stringify(room), {
                 EX: 60
             });
 
@@ -88,7 +88,7 @@ export class RoomDao {
 
             await newRoomRef.set(room);
 
-            await redisClient.del('rooms');
+            await deleteCachedValue('rooms');
 
             const newRoomSnapshot = await roomsRef.child(newRoomRef.key!).once('value');
             const newRoom = newRoomSnapshot.val();
@@ -135,8 +135,8 @@ export class RoomDao {
                 numberOfHoles: startGameDetails.numberOfHoles
             });
 
-            await redisClient.del(`room:${room.roomCode}`);
-            await redisClient.del('rooms');
+            await deleteCachedValue(`room:${room.roomCode}`);
+            await deleteCachedValue('rooms');
     
             const updatedRoomSnapshot = await roomsRef.child(startGameDetails.id).once('value');
             const updatedRoomData = updatedRoomSnapshot.val();
@@ -168,8 +168,8 @@ export class RoomDao {
 
             await db.ref().update(updates);
 
-            await redisClient.del(`room:${roomCopy.roomCode}`);
-            await redisClient.del('rooms');
+            await deleteCachedValue(`room:${roomCopy.roomCode}`);
+            await deleteCachedValue('rooms');
     
             const updatedRoomSnapshot = await roomRef.once('value');
             const updatedRoomData = updatedRoomSnapshot.val();
@@ -214,9 +214,9 @@ export class RoomDao {
 
             room.players!.set(playerData.id, playerData);
 
-            await redisClient.del(`players:${roomKey}`);
-            await redisClient.del(`room:${room.roomCode}`);
-            await redisClient.del('rooms');
+            await deleteCachedValue(`players:${roomKey}`);
+            await deleteCachedValue(`room:${room.roomCode}`);
+            await deleteCachedValue('rooms');
 
             return room;
         } catch (error) {
@@ -255,9 +255,9 @@ export class RoomDao {
 
             room.players!.delete(leaveDetails.player.id);
 
-            await redisClient.del(`players:${roomKey}`);
-            await redisClient.del(`room:${room.roomCode}`);
-            await redisClient.del('rooms');
+            await deleteCachedValue(`players:${roomKey}`);
+            await deleteCachedValue(`room:${room.roomCode}`);
+            await deleteCachedValue('rooms');
 
             return room;
         } catch (error) {
@@ -273,8 +273,8 @@ export class RoomDao {
 
             await roomRef.remove();
 
-            await redisClient.del(`room:${roomData.roomCode}`);
-            await redisClient.del('rooms');
+            await deleteCachedValue(`room:${roomData.roomCode}`);
+            await deleteCachedValue('rooms');
         } catch (error) {
             throw new DatabaseError("Could not delete room from database: " + error);
         }

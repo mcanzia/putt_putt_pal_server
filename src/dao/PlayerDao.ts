@@ -1,10 +1,10 @@
 import { db } from '../configs/firebase';
 import { PlayerDTO } from '../models/dto/PlayerDTO';
 import { DatabaseError } from '../util/error/CustomError';
-import redisClient from '../redisClient';
 import { inject, injectable } from 'inversify';
 import { TYPES } from '../configs/types';
 import { Server } from 'socket.io';
+import { getCachedValue, setCachedValue, deleteCachedValue } from '../util/cache/useCache';
 
 @injectable()
 export class PlayerDao {
@@ -14,7 +14,7 @@ export class PlayerDao {
     async getPlayers(roomId: string) {
         try {
             const cacheKey = `players:${roomId}`;
-            const cachedPlayers = await redisClient.get(cacheKey);
+            const cachedPlayers = await getCachedValue(cacheKey);
             if (cachedPlayers) {
                 return JSON.parse(cachedPlayers);
             }
@@ -30,7 +30,7 @@ export class PlayerDao {
 
             players = snapshot.val();
 
-            await redisClient.set(cacheKey, JSON.stringify(players), {
+            await setCachedValue(cacheKey, JSON.stringify(players), {
                 EX: 60
             });
 
@@ -43,7 +43,7 @@ export class PlayerDao {
     async getPlayerById(roomId: string, playerId: string): Promise<PlayerDTO> {
         try {
             const cacheKey = `player:${roomId}:${playerId}`;
-            const cachedPlayer = await redisClient.get(cacheKey);
+            const cachedPlayer = await getCachedValue(cacheKey);
             if (cachedPlayer) {
                 return JSON.parse(cachedPlayer);
             }
@@ -63,7 +63,7 @@ export class PlayerDao {
                 playerData.color
             );
 
-            await redisClient.set(cacheKey, JSON.stringify(player), {
+            await setCachedValue(cacheKey, JSON.stringify(player), {
                 EX: 60
             });
 
@@ -82,7 +82,7 @@ export class PlayerDao {
 
             await playersRef.set(player);
 
-            await redisClient.del(`players:${roomId}`);
+            await deleteCachedValue(`players:${roomId}`);
 
             return player;
         } catch (error) {
@@ -96,8 +96,8 @@ export class PlayerDao {
 
             await playerRef.update(updatedPlayer);
 
-            await redisClient.del(`player:${roomId}:${playerId}`);
-            await redisClient.del(`players:${roomId}`);
+            await deleteCachedValue(`player:${roomId}:${playerId}`);
+            await deleteCachedValue(`players:${roomId}`);
 
             const updatedPlayers = await this.getPlayers(roomId);
 
@@ -112,8 +112,8 @@ export class PlayerDao {
             const playerRef = db.ref(`rooms/${roomId}/players/${playerId}`);
             await playerRef.remove();
 
-            await redisClient.del(`player:${roomId}:${playerId}`);
-            await redisClient.del(`players:${roomId}`);
+            await deleteCachedValue(`player:${roomId}:${playerId}`);
+            await deleteCachedValue(`players:${roomId}`);
 
             const updatedPlayers = await this.getPlayers(roomId);
 

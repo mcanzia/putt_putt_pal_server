@@ -2,8 +2,8 @@ import { injectable } from 'inversify';
 import { NextFunction, Request, Response } from 'express';
 import Logger from '../util/logs/logger';
 import { PlayerColorDTO } from "../models/dto/PlayerColorDTO";
-import redisClient from '../redisClient';
 import { CustomError } from '../util/error/CustomError';
+import { getCachedValue, setCachedValue } from '../util/cache/useCache';
 
 @injectable()
 export class PlayerColorController {
@@ -12,14 +12,14 @@ export class PlayerColorController {
         try {
             Logger.info(`Retrieving all player colors`);
             const cacheKey = 'player-colors';
-            const cachedPlayerColors = await redisClient.get(cacheKey);
+            const cachedPlayerColors = await getCachedValue(cacheKey);
             if (cachedPlayerColors) {
                 response.status(200).send(cachedPlayerColors);
                 return;
             }
             const playerColors : Array<PlayerColorDTO> = PlayerColorDTO.createBaseColors();
 
-            await redisClient.set(cacheKey, JSON.stringify(playerColors), {
+            await setCachedValue(cacheKey, JSON.stringify(playerColors), {
                 EX: 60
             });
             

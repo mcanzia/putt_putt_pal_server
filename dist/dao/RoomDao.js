@@ -17,7 +17,7 @@ const firebase_1 = require("../configs/firebase");
 const CustomError_1 = require("../util/error/CustomError");
 const PlayerDTO_1 = require("../models/dto/PlayerDTO");
 const RoomDTO_1 = require("../models/dto/RoomDTO");
-const redisClient_1 = __importDefault(require("../redisClient"));
+const useCache_1 = require("../util/cache/useCache");
 const lodash_1 = __importDefault(require("lodash"));
 const PlayerScoreDTO_1 = require("../models/dto/PlayerScoreDTO");
 const inversify_1 = require("inversify");
@@ -26,7 +26,7 @@ let RoomDao = class RoomDao {
     async getRooms() {
         try {
             const cacheKey = 'rooms';
-            const cachedRooms = await redisClient_1.default.get(cacheKey);
+            const cachedRooms = await (0, useCache_1.getCachedValue)(cacheKey);
             if (cachedRooms) {
                 return JSON.parse(cachedRooms);
             }
@@ -41,7 +41,7 @@ let RoomDao = class RoomDao {
                     rooms.push(room);
                 });
             }
-            await redisClient_1.default.set(cacheKey, JSON.stringify(rooms), {
+            await (0, useCache_1.setCachedValue)(cacheKey, JSON.stringify(rooms), {
                 EX: 60
             });
             return rooms;
@@ -53,7 +53,7 @@ let RoomDao = class RoomDao {
     async getRoomByNumber(roomNumber) {
         try {
             const cacheKey = `room:${roomNumber}`;
-            const cachedRoom = await redisClient_1.default.get(cacheKey);
+            const cachedRoom = await (0, useCache_1.getCachedValue)(cacheKey);
             if (cachedRoom) {
                 return JSON.parse(cachedRoom);
             }
@@ -66,7 +66,7 @@ let RoomDao = class RoomDao {
             const roomId = Object.keys(roomObject)[0];
             const roomData = roomObject[roomId];
             const room = new RoomDTO_1.RoomDTO(roomId, roomData.roomCode, roomData.players, roomData.holes, roomData.allPlayersJoined, roomData.numberOfHoles);
-            await redisClient_1.default.set(cacheKey, JSON.stringify(room), {
+            await (0, useCache_1.setCachedValue)(cacheKey, JSON.stringify(room), {
                 EX: 60
             });
             return room;
@@ -81,7 +81,7 @@ let RoomDao = class RoomDao {
             const newRoomRef = roomsRef.push();
             room.id = newRoomRef.key;
             await newRoomRef.set(room);
-            await redisClient_1.default.del('rooms');
+            await (0, useCache_1.deleteCachedValue)('rooms');
             const newRoomSnapshot = await roomsRef.child(newRoomRef.key).once('value');
             const newRoom = newRoomSnapshot.val();
             return { ...newRoom, players: room.players };
@@ -119,8 +119,8 @@ let RoomDao = class RoomDao {
             await roomsRef.child(startGameDetails.id).update({
                 numberOfHoles: startGameDetails.numberOfHoles
             });
-            await redisClient_1.default.del(`room:${room.roomCode}`);
-            await redisClient_1.default.del('rooms');
+            await (0, useCache_1.deleteCachedValue)(`room:${room.roomCode}`);
+            await (0, useCache_1.deleteCachedValue)('rooms');
             const updatedRoomSnapshot = await roomsRef.child(startGameDetails.id).once('value');
             const updatedRoomData = updatedRoomSnapshot.val();
             return updatedRoomData;
@@ -143,8 +143,8 @@ let RoomDao = class RoomDao {
                 updates[`/rooms/${roomId}/players/${key}`] = value;
             });
             await firebase_1.db.ref().update(updates);
-            await redisClient_1.default.del(`room:${roomCopy.roomCode}`);
-            await redisClient_1.default.del('rooms');
+            await (0, useCache_1.deleteCachedValue)(`room:${roomCopy.roomCode}`);
+            await (0, useCache_1.deleteCachedValue)('rooms');
             const updatedRoomSnapshot = await roomRef.once('value');
             const updatedRoomData = updatedRoomSnapshot.val();
             return updatedRoomData;
@@ -172,9 +172,9 @@ let RoomDao = class RoomDao {
             const playerData = new PlayerDTO_1.PlayerDTO(playerRef.key, joinDetails.playerName, joinDetails.isHost, joinDetails.color);
             await playerRef.set(playerData);
             room.players.set(playerData.id, playerData);
-            await redisClient_1.default.del(`players:${roomKey}`);
-            await redisClient_1.default.del(`room:${room.roomCode}`);
-            await redisClient_1.default.del('rooms');
+            await (0, useCache_1.deleteCachedValue)(`players:${roomKey}`);
+            await (0, useCache_1.deleteCachedValue)(`room:${room.roomCode}`);
+            await (0, useCache_1.deleteCachedValue)('rooms');
             return room;
         }
         catch (error) {
@@ -198,9 +198,9 @@ let RoomDao = class RoomDao {
             }
             await playersRef.child(leaveDetails.player.id).remove();
             room.players.delete(leaveDetails.player.id);
-            await redisClient_1.default.del(`players:${roomKey}`);
-            await redisClient_1.default.del(`room:${room.roomCode}`);
-            await redisClient_1.default.del('rooms');
+            await (0, useCache_1.deleteCachedValue)(`players:${roomKey}`);
+            await (0, useCache_1.deleteCachedValue)(`room:${room.roomCode}`);
+            await (0, useCache_1.deleteCachedValue)('rooms');
             return room;
         }
         catch (error) {
@@ -213,8 +213,8 @@ let RoomDao = class RoomDao {
             const roomSnapshot = await roomRef.once('value');
             const roomData = roomSnapshot.val();
             await roomRef.remove();
-            await redisClient_1.default.del(`room:${roomData.roomCode}`);
-            await redisClient_1.default.del('rooms');
+            await (0, useCache_1.deleteCachedValue)(`room:${roomData.roomCode}`);
+            await (0, useCache_1.deleteCachedValue)('rooms');
         }
         catch (error) {
             throw new CustomError_1.DatabaseError("Could not delete room from database: " + error);

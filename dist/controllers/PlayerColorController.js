@@ -13,19 +13,19 @@ exports.PlayerColorController = void 0;
 const inversify_1 = require("inversify");
 const logger_1 = __importDefault(require("../util/logs/logger"));
 const PlayerColorDTO_1 = require("../models/dto/PlayerColorDTO");
-const redisClient_1 = __importDefault(require("../redisClient"));
+const useCache_1 = require("../util/cache/useCache");
 let PlayerColorController = class PlayerColorController {
     async getPlayerColors(request, response, next) {
         try {
             logger_1.default.info(`Retrieving all player colors`);
             const cacheKey = 'player-colors';
-            const cachedPlayerColors = await redisClient_1.default.get(cacheKey);
+            const cachedPlayerColors = await (0, useCache_1.getCachedValue)(cacheKey);
             if (cachedPlayerColors) {
                 response.status(200).send(cachedPlayerColors);
                 return;
             }
             const playerColors = PlayerColorDTO_1.PlayerColorDTO.createBaseColors();
-            await redisClient_1.default.set(cacheKey, JSON.stringify(playerColors), {
+            await (0, useCache_1.setCachedValue)(cacheKey, JSON.stringify(playerColors), {
                 EX: 60
             });
             logger_1.default.info("Number of colors retrieved successfully: " + playerColors.length);

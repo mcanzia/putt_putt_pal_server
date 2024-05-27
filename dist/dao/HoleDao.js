@@ -11,17 +11,14 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.HoleDao = void 0;
 const firebase_1 = require("../configs/firebase");
 const CustomError_1 = require("../util/error/CustomError");
-const redisClient_1 = __importDefault(require("../redisClient"));
 const inversify_1 = require("inversify");
 const types_1 = require("../configs/types");
 const socket_io_1 = require("socket.io");
+const useCache_1 = require("../util/cache/useCache");
 let HoleDao = class HoleDao {
     io;
     constructor(io) {
@@ -30,7 +27,7 @@ let HoleDao = class HoleDao {
     async getHoles(roomId) {
         try {
             const cacheKey = `holes:${roomId}`;
-            const cachedHoles = await redisClient_1.default.get(cacheKey);
+            const cachedHoles = await (0, useCache_1.getCachedValue)(cacheKey);
             if (cachedHoles) {
                 return JSON.parse(cachedHoles);
             }
@@ -41,7 +38,7 @@ let HoleDao = class HoleDao {
                 throw new Error('No such room found.');
             }
             holes = snapshot.val();
-            await redisClient_1.default.set(cacheKey, JSON.stringify(holes), {
+            await (0, useCache_1.setCachedValue)(cacheKey, JSON.stringify(holes), {
                 EX: 60
             });
             return holes;
@@ -53,7 +50,7 @@ let HoleDao = class HoleDao {
     async getHoleById(roomId, holeId) {
         try {
             const cacheKey = `hole:${roomId}:${holeId}`;
-            const cachedHole = await redisClient_1.default.get(cacheKey);
+            const cachedHole = await (0, useCache_1.getCachedValue)(cacheKey);
             if (cachedHole) {
                 return JSON.parse(cachedHole);
             }
@@ -64,7 +61,7 @@ let HoleDao = class HoleDao {
             }
             const holeData = snapshot.val();
             const hole = { ...holeData };
-            await redisClient_1.default.set(cacheKey, JSON.stringify(hole), {
+            await (0, useCache_1.setCachedValue)(cacheKey, JSON.stringify(hole), {
                 EX: 60
             });
             return hole;
@@ -79,7 +76,7 @@ let HoleDao = class HoleDao {
             const newHolesRef = holesRef.push();
             hole.id = newHolesRef.key;
             await newHolesRef.set(hole);
-            await redisClient_1.default.del(`holes:${roomId}`);
+            await (0, useCache_1.deleteCachedValue)(`holes:${roomId}`);
             const updatedHoles = await this.getHoles(roomId);
             return updatedHoles;
         }
@@ -91,8 +88,8 @@ let HoleDao = class HoleDao {
         try {
             const holeRef = firebase_1.db.ref(`rooms/${roomId}/holes`);
             await holeRef.child(holeId).update(updatedHole);
-            await redisClient_1.default.del(`hole:${roomId}:${holeId}`);
-            await redisClient_1.default.del(`holes:${roomId}`);
+            await (0, useCache_1.deleteCachedValue)(`hole:${roomId}:${holeId}`);
+            await (0, useCache_1.deleteCachedValue)(`holes:${roomId}`);
             return updatedHole;
         }
         catch (error) {
@@ -103,8 +100,8 @@ let HoleDao = class HoleDao {
         try {
             const holeRef = firebase_1.db.ref(`rooms/${roomId}/holes/${holeId}`);
             await holeRef.remove();
-            await redisClient_1.default.del(`hole:${roomId}:${holeId}`);
-            await redisClient_1.default.del(`holes:${roomId}`);
+            await (0, useCache_1.deleteCachedValue)(`hole:${roomId}:${holeId}`);
+            await (0, useCache_1.deleteCachedValue)(`holes:${roomId}`);
             const updatedHoles = await this.getHoles(roomId);
             return updatedHoles;
         }

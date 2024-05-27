@@ -11,18 +11,15 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PlayerDao = void 0;
 const firebase_1 = require("../configs/firebase");
 const PlayerDTO_1 = require("../models/dto/PlayerDTO");
 const CustomError_1 = require("../util/error/CustomError");
-const redisClient_1 = __importDefault(require("../redisClient"));
 const inversify_1 = require("inversify");
 const types_1 = require("../configs/types");
 const socket_io_1 = require("socket.io");
+const useCache_1 = require("../util/cache/useCache");
 let PlayerDao = class PlayerDao {
     io;
     constructor(io) {
@@ -31,7 +28,7 @@ let PlayerDao = class PlayerDao {
     async getPlayers(roomId) {
         try {
             const cacheKey = `players:${roomId}`;
-            const cachedPlayers = await redisClient_1.default.get(cacheKey);
+            const cachedPlayers = await (0, useCache_1.getCachedValue)(cacheKey);
             if (cachedPlayers) {
                 return JSON.parse(cachedPlayers);
             }
@@ -42,7 +39,7 @@ let PlayerDao = class PlayerDao {
                 throw new Error('No such room found.');
             }
             players = snapshot.val();
-            await redisClient_1.default.set(cacheKey, JSON.stringify(players), {
+            await (0, useCache_1.setCachedValue)(cacheKey, JSON.stringify(players), {
                 EX: 60
             });
             return players;
@@ -54,7 +51,7 @@ let PlayerDao = class PlayerDao {
     async getPlayerById(roomId, playerId) {
         try {
             const cacheKey = `player:${roomId}:${playerId}`;
-            const cachedPlayer = await redisClient_1.default.get(cacheKey);
+            const cachedPlayer = await (0, useCache_1.getCachedValue)(cacheKey);
             if (cachedPlayer) {
                 return JSON.parse(cachedPlayer);
             }
@@ -65,7 +62,7 @@ let PlayerDao = class PlayerDao {
             }
             const playerData = snapshot.val();
             const player = new PlayerDTO_1.PlayerDTO(playerId, playerData.name, playerData.isHost, playerData.color);
-            await redisClient_1.default.set(cacheKey, JSON.stringify(player), {
+            await (0, useCache_1.setCachedValue)(cacheKey, JSON.stringify(player), {
                 EX: 60
             });
             return player;
@@ -80,7 +77,7 @@ let PlayerDao = class PlayerDao {
             const playersRef = await roomsRef.child(`${roomId}/players`).push();
             player.id = playersRef.key;
             await playersRef.set(player);
-            await redisClient_1.default.del(`players:${roomId}`);
+            await (0, useCache_1.deleteCachedValue)(`players:${roomId}`);
             return player;
         }
         catch (error) {
@@ -91,8 +88,8 @@ let PlayerDao = class PlayerDao {
         try {
             const playerRef = firebase_1.db.ref(`rooms/${roomId}/players/${playerId}`);
             await playerRef.update(updatedPlayer);
-            await redisClient_1.default.del(`player:${roomId}:${playerId}`);
-            await redisClient_1.default.del(`players:${roomId}`);
+            await (0, useCache_1.deleteCachedValue)(`player:${roomId}:${playerId}`);
+            await (0, useCache_1.deleteCachedValue)(`players:${roomId}`);
             const updatedPlayers = await this.getPlayers(roomId);
             return updatedPlayers;
         }
@@ -104,8 +101,8 @@ let PlayerDao = class PlayerDao {
         try {
             const playerRef = firebase_1.db.ref(`rooms/${roomId}/players/${playerId}`);
             await playerRef.remove();
-            await redisClient_1.default.del(`player:${roomId}:${playerId}`);
-            await redisClient_1.default.del(`players:${roomId}`);
+            await (0, useCache_1.deleteCachedValue)(`player:${roomId}:${playerId}`);
+            await (0, useCache_1.deleteCachedValue)(`players:${roomId}`);
             const updatedPlayers = await this.getPlayers(roomId);
             return updatedPlayers;
         }

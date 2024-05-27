@@ -1,10 +1,10 @@
 import { db } from '../configs/firebase';
 import { HoleDTO } from '../models/dto/HoleDTO';
 import { DatabaseError } from '../util/error/CustomError';
-import redisClient from '../redisClient';
 import { inject, injectable } from 'inversify';
 import { TYPES } from '../configs/types';
 import { Server } from 'socket.io';
+import { getCachedValue, setCachedValue, deleteCachedValue } from '../util/cache/useCache';
 
 @injectable()
 export class HoleDao {
@@ -14,7 +14,7 @@ export class HoleDao {
     async getHoles(roomId: string) {
         try {
             const cacheKey = `holes:${roomId}`;
-            const cachedHoles = await redisClient.get(cacheKey);
+            const cachedHoles = await getCachedValue(cacheKey);
             if (cachedHoles) {
                 return JSON.parse(cachedHoles);
             }
@@ -30,7 +30,7 @@ export class HoleDao {
 
             holes = snapshot.val();
             
-            await redisClient.set(cacheKey, JSON.stringify(holes), {
+            await setCachedValue(cacheKey, JSON.stringify(holes), {
                 EX: 60
             });
 
@@ -43,7 +43,7 @@ export class HoleDao {
     async getHoleById(roomId: string, holeId: string) {
         try {
             const cacheKey = `hole:${roomId}:${holeId}`;
-            const cachedHole = await redisClient.get(cacheKey);
+            const cachedHole = await getCachedValue(cacheKey);
             if (cachedHole) {
                 return JSON.parse(cachedHole);
             }
@@ -58,7 +58,7 @@ export class HoleDao {
             const holeData = snapshot.val();
             const hole = { ...holeData };
 
-            await redisClient.set(cacheKey, JSON.stringify(hole), {
+            await setCachedValue(cacheKey, JSON.stringify(hole), {
                 EX: 60
             });
 
@@ -77,7 +77,7 @@ export class HoleDao {
 
             await newHolesRef.set(hole);
 
-            await redisClient.del(`holes:${roomId}`);
+            await deleteCachedValue(`holes:${roomId}`);
 
             const updatedHoles = await this.getHoles(roomId);
             return updatedHoles;
@@ -92,8 +92,8 @@ export class HoleDao {
 
             await holeRef.child(holeId).update(updatedHole);
 
-            await redisClient.del(`hole:${roomId}:${holeId}`);
-            await redisClient.del(`holes:${roomId}`);
+            await deleteCachedValue(`hole:${roomId}:${holeId}`);
+            await deleteCachedValue(`holes:${roomId}`);
 
             return updatedHole;
         } catch (error) {
@@ -106,8 +106,8 @@ export class HoleDao {
             const holeRef = db.ref(`rooms/${roomId}/holes/${holeId}`);
             await holeRef.remove();
 
-            await redisClient.del(`hole:${roomId}:${holeId}`);
-            await redisClient.del(`holes:${roomId}`);
+            await deleteCachedValue(`hole:${roomId}:${holeId}`);
+            await deleteCachedValue(`holes:${roomId}`);
 
             const updatedHoles = await this.getHoles(roomId);
             return updatedHoles;
