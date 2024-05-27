@@ -1,43 +1,6 @@
-// import { createClient } from 'redis';
-// import Logger from './util/logs/logger';
-// import cache from 'express-redis-cache';
-// import { promisify } from 'util';
+import Redis from 'ioredis';
 
-// console.log('Connecting to Redis at:', process.env.REDIS_HOST);
-// const redisClient = createClient({
-//     socket: {
-//         host: process.env.REDIS_HOST || 'localhost',
-//         port: 6379
-//     },
-//   });
-  
-// redisClient.on('error', (err) => Logger.error('Redis Client Error', err));
+console.log('Connecting to Redis at:', process.env.REDIS_HOST);
+const redis = new Redis(6379, process.env.REDIS_HOST || '127.0.0.1');
 
-// redisClient.connect().then(() => {
-//   Logger.info('Redis client connected');
-// }).catch((err) => {
-//   Logger.error('Failed to connect to Redis', err);
-// });
-
-// const redisCache = cache({
-//   client: redisClient,
-//   prefix: 'putt-putt-pal'
-// });
-
-// redisCache.on('connected', () => {
-//   Logger.info('Redis cache connected');
-// });
-
-// redisCache.on('disconnected', () => {
-//   Logger.warn('Redis cache disconnected');
-// });
-
-// redisCache.on('error', (error: any) => {
-//   Logger.error('Redis Cache Error:', error);
-// });
-
-// const getAsync = promisify(redisClient.get).bind(redisClient);
-// const setAsync = promisify(redisClient.set).bind(redisClient);
-// const deleteAsync = promisify(redisClient.del).bind(redisClient);
-
-// export {redisClient, getAsync, setAsync, deleteAsync};
+export {redis};

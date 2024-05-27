@@ -5,7 +5,7 @@ const redisClient_1 = require("../../redisClient");
 const fallbackCache_1 = require("./fallbackCache");
 async function getCachedValue(key) {
     try {
-        const value = await (0, redisClient_1.getAsync)(key);
+        const value = await redisClient_1.redis.get(key);
         if (value !== null) {
             return value;
         }
@@ -20,8 +20,9 @@ async function getCachedValue(key) {
 }
 exports.getCachedValue = getCachedValue;
 async function setCachedValue(key, value, options) {
+    const { EX } = options;
     try {
-        await (0, redisClient_1.setAsync)(key, value, options);
+        await redisClient_1.redis.set(key, value, 'EX', EX);
     }
     catch (error) {
         console.error('Failed to set value in Redis, using fallback:', error);
@@ -31,7 +32,7 @@ async function setCachedValue(key, value, options) {
 exports.setCachedValue = setCachedValue;
 async function deleteCachedValue(key) {
     try {
-        await (0, redisClient_1.deleteAsync)(key);
+        await redisClient_1.redis.del(key);
     }
     catch (error) {
         console.error('Failed to delete value in Redis, using fallback:', error);

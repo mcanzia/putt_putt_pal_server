@@ -4,14 +4,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
-const express_redis_cache_1 = __importDefault(require("express-redis-cache"));
 const inversify_config_1 = require("../configs/inversify.config");
 const types_1 = require("../configs/types");
 const router = express_1.default.Router();
 const roomController = inversify_config_1.container.get(types_1.TYPES.RoomController);
-const redisCache = (0, express_redis_cache_1.default)();
-router.get('/', redisCache.route({ expire: 60 }), (req, res, next) => roomController.getRooms(req, res, next));
-router.get('/:roomId', redisCache.route({ expire: 60 }), (req, res, next) => roomController.getRoomByNumber(req, res, next));
+router.get('/', (req, res, next) => roomController.getRooms(req, res, next));
+router.get('/:roomId', (req, res, next) => roomController.getRoomByNumber(req, res, next));
 router.post('/create', (req, res, next) => roomController.createRoom(req, res, next));
 router.post('/join', (req, res, next) => roomController.joinRoom(req, res, next));
 router.post('/leave', (req, res, next) => roomController.leaveRoom(req, res, next));

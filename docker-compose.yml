@@ -40,6 +40,7 @@ services:
 
 networks:
   puttputtpal_net:
+    name: puttputtpal_net
     driver: bridge
   redis-network:
     driver: bridge
