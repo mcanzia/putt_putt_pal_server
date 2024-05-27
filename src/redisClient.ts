@@ -5,7 +5,7 @@ import cache from 'express-redis-cache';
 console.log('Connecting to Redis at:', process.env.REDIS_HOST);
 const redisClient = createClient({
     socket: {
-        host: process.env.REDIS_HOST ?? 'localhost',
+        host: process.env.REDIS_HOST ? process.env.REDIS_HOST : 'localhost',
         port: 6379
     },
   });
