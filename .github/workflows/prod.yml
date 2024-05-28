@@ -37,12 +37,15 @@ jobs:
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H '${{ secrets.DIGITAL_OCEAN_IP }}' >> ~/.ssh/known_hosts
-      - name: Copy docker-compose.yml to Droplet
+      - name: Copy docker-compose-server.yml to Droplet
         run: |
-          scp ./docker-compose.yml root@${{ secrets.DIGITAL_OCEAN_IP }}:/root/devops/docker-compose.yml
+          scp ./docker-compose-server.yml root@${{ secrets.DIGITAL_OCEAN_IP }}:/root/devops/docker-compose-server.yml
+      - name: Copy docker-compose-proxy.yml to Droplet
+        run: |
+          scp ./docker-compose-proxy.yml root@${{ secrets.DIGITAL_OCEAN_IP }}:/root/devops/docker-compose-proxy.yml
       - name: Copy nginx.conf to Droplet
         run: |
           scp ./nginx/nginx.conf root@${{ secrets.DIGITAL_OCEAN_IP }}:/root/devops/nginx.conf
       - name: SSH and Docker Compose Up
         run: |
-          ssh root@${{ secrets.DIGITAL_OCEAN_IP }} 'cd /root/devops && docker compose pull && docker compose up -d'
+          ssh root@${{ secrets.DIGITAL_OCEAN_IP }} 'cd /root/devops && docker compose pull && docker compose -f docker-compose-server.yml up -d && docker compose -f docker-compose-proxy.yml up -d'
