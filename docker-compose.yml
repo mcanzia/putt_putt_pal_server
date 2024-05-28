@@ -7,10 +7,9 @@ services:
       - "6379:6379"
     volumes:
       - redis-data:/data
-      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf
-    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
     networks:
       - puttputtpal_net
+      - redis-network
   api:
     container_name: puttputtpal-server
     image: index.docker.io/mcanziani1/puttputtpal-server:latest
