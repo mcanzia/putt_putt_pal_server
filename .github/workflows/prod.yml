@@ -49,6 +49,9 @@ jobs:
       - name: Copy redis.conf to Droplet
         run: |
           scp ./redis/redis.conf root@${{ secrets.DIGITAL_OCEAN_IP }}:/root/devops/redis.conf
-      - name: SSH and Docker Compose Up
+      - name: SSH and Docker Compose Up server
         run: |
-          ssh root@${{ secrets.DIGITAL_OCEAN_IP }} 'cd /root/devops && docker compose pull && docker compose -f docker-compose-server.yml up -d && docker compose -f docker-compose-proxy.yml up -d'
+          ssh root@${{ secrets.DIGITAL_OCEAN_IP }} 'cd /root/devops && docker compose -f docker-compose-server.yml pull && docker compose -f docker-compose-server.yml up -d'
+      - name: SSH and Docker Compose Up proxy
+        run: |
+          ssh root@${{ secrets.DIGITAL_OCEAN_IP }} 'cd /root/devops && docker compose -f docker-compose-proxy.yml pull && docker compose -f docker-compose-proxy.yml up -d'
