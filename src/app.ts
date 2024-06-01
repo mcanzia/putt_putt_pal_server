@@ -18,13 +18,7 @@ const port: number = Number(process.env.VITE_PORT) || 7500;
 app.use(compression());
 
 // Security
-app.use(cors({
-  origin: ['http://localhost:59227', 'http://puttputtpal.com'],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  credentials: true,
-  preflightContinue: false,
-  optionsSuccessStatus: 204
-}));
+app.use(cors());
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: 200 // limit each IP to 100 requests per 15 minutes
