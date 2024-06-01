@@ -13,7 +13,7 @@ services:
     networks:
       - puttputtpal_net
 
+# create network externally with docker network create puttputtpal_net
 networks:
   puttputtpal_net:
-    name: puttputtpal_net
-    driver: bridge
+    external: true
