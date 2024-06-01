@@ -18,6 +18,7 @@ const port: number = Number(process.env.VITE_PORT) || 7500;
 app.use(compression());
 
 // Security
+app.set('trust proxy', 1);
 app.use(cors());
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
