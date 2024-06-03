@@ -86,7 +86,7 @@ export class RoomDao {
 
             room.id = newRoomRef.key!;
 
-            await newRoomRef.set(room);
+            await newRoomRef.set({...room, lastActivity: Date.now()});
 
             await deleteCachedValue('rooms');
 
@@ -158,7 +158,7 @@ export class RoomDao {
                 delete updatedRoom.players;
             }
 
-            await roomRef.update(updatedRoom);
+            await roomRef.update({...updatedRoom, lastActivity: Date.now()});
 
             const updates: { [key: string]: any } = {};
 
