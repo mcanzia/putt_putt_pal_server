@@ -15,5 +15,6 @@ router.put('/startGame/:roomId', (req, res, next) => roomController.startGame(re
 router.put('/reset/:roomId', (req, res, next) => roomController.resetRoom(req, res, next));
 router.put('/:roomId', (req, res, next) => roomController.updateRoom(req, res, next));
 router.delete('/', (req, res, next) => roomController.deleteRoom(req, res, next));
+router.delete('/inactive', (req, res, next) => roomController.deleteInactiveRoomsRequest(req, res, next));
 
 export default router;

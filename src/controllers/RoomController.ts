@@ -130,4 +130,23 @@ export class RoomController {
         }
     }
 
+    async deleteInactiveRooms() {
+        try {
+            await this.roomDao.checkAndDeleteInactiveRooms();
+        } catch (error) {
+            Logger.error("Error deleting inactive rooms", error);
+        }
+    }
+
+    async deleteInactiveRoomsRequest(request : Request, response : Response, next : NextFunction) {
+        try {
+            Logger.info(`Deleting inactive rooms - ${Date.now.toString()}`);
+            await this.roomDao.checkAndDeleteInactiveRooms();
+            response.status(200).send();
+        } catch (error) {
+            Logger.error("Error deleting inactive rooms", error);
+            response.status((error as CustomError).statusCode).send((error as CustomError).message);
+        }
+    }
+
 }

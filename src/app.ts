@@ -9,6 +9,7 @@ import Logger from './util/logs/logger';
 import { CustomError } from './util/error/CustomError';
 import { ErrorHandler } from './util/error/ErrorHandler';
 import { AuthServiceImpl } from './services/AuthService';
+import { startCronJobs } from './cron';
 
 var { unless } = require("express-unless");
 
@@ -56,4 +57,8 @@ app.use((error : CustomError, request : Request, response : Response, next : Nex
   ErrorHandler.handleError(error, response);
 });
 
-httpServer.listen(port, () => console.log(`Server running on port ${port}`));
+httpServer.listen(port, () => {
+  Logger.info(`Server is running on port ${port}`);
+
+  startCronJobs();
+});

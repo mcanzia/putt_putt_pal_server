@@ -280,4 +280,24 @@ export class RoomDao {
         }
     }
 
+    async checkAndDeleteInactiveRooms() {
+        const roomsRef = db.ref('rooms');
+        const now = Date.now();
+        const oneHourAgo = now - 3600000;
+    
+        roomsRef.once('value').then(snapshot => {
+            snapshot.forEach(childSnapshot => {
+                const roomId = childSnapshot.key;
+                const roomData = childSnapshot.val();
+    
+                if (roomData.lastActivity && roomData.lastActivity < oneHourAgo) {
+                    console.log(`Deleting inactive room ${roomId}`);
+                    this.deleteRoom(roomId!);
+                }
+            });
+        }).catch((error) => {
+            throw new DatabaseError("Error performing database cleanup: " + error);
+        });
+    }
+
 }
