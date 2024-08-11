@@ -20,7 +20,9 @@ io.on('connection', (socket) => {
   
     socket.on('leaveRoom', (roomId) => {
       socket.leave(roomId);
-      console.log(`User left room: ${roomId}`);
+      socket.disconnect(true);
+      console.log(`Socket ${socket.id} is still in rooms: `, socket.rooms);
+      console.log(`User left room: ${roomId.roomId}`);
     });
   
     socket.on('disconnect', () => {

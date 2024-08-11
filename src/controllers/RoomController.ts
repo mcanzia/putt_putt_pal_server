@@ -83,6 +83,7 @@ export class RoomController {
             const joinDetails : JoinRoomDetails = request.body;
             const room : RoomDTO = await this.roomDao.joinRoom(joinDetails);
             this.io.to(room.id).emit('roomUpdated', room.toObject());
+            this.io.to(room.id).emit('playerJoined', joinDetails.color);
             response.status(200).json(room.toObject());
         } catch (error) {
             Logger.error("Error joining room: ", error);

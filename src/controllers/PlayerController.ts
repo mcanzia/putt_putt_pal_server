@@ -78,6 +78,7 @@ export class PlayerController {
             const playerList : Map<String, PlayerDTO> = await this.playerDao.deletePlayer(roomId, player.id);
             Logger.info(`Successfully deleted player ${player.id}`);
             this.io.to(roomId).emit('playerListUpdated', playerList);
+            this.io.to(roomId).emit('playerDeleted', player);
             response.status(200).send();
         } catch (error) {
             Logger.error("Error deleting player", error);

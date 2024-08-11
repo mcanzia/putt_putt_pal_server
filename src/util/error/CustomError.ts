@@ -18,6 +18,12 @@ export class DuplicateNameError extends CustomError {
       super(message, 303);
     }
 }
+
+export class DuplicateColorError extends CustomError {
+    constructor(message = 'Duplicate Player Color') {
+      super(message, 313);
+    }
+}
   
 export class InternalServerError extends CustomError {
     constructor(message = 'Internal Server Error') {

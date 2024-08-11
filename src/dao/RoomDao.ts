@@ -1,7 +1,7 @@
 import { db } from '../configs/firebase';
 import { JoinRoomDetails } from '../models/dao/JoinRoomDetails';
 import { LeaveRoomDetails } from '../models/dto/LeaveRoomDetails';
-import { CustomError, DatabaseError, DuplicateNameError, NotFoundError } from '../util/error/CustomError';
+import { CustomError, DatabaseError, DuplicateColorError, DuplicateNameError, NotFoundError } from '../util/error/CustomError';
 import { PlayerDTO } from '../models/dto/PlayerDTO';
 import { RoomDTO } from '../models/dto/RoomDTO';
 import { deleteCachedValue, getCachedValue, setCachedValue } from '../util/cache/useCache';
@@ -203,6 +203,9 @@ export class RoomDao {
             for (const player of room.players!.values()) {
                 if (player.name === joinDetails.playerName) {
                     throw new DuplicateNameError(`Player with the name ${joinDetails.playerName} already exists in the room.`);
+                }
+                if (joinDetails.color.id !== 0 && player.color.id === joinDetails.color.id) {
+                    throw new DuplicateColorError(`A player in this room has already chosen this color.`);
                 }
             }
 
