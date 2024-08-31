@@ -24,6 +24,12 @@ export class DuplicateColorError extends CustomError {
       super(message, 313);
     }
 }
+
+export class TooManyPlayersError extends CustomError {
+    constructor(message = 'Too Many Players In Room') {
+      super(message, 323);
+    }
+}
   
 export class InternalServerError extends CustomError {
     constructor(message = 'Internal Server Error') {
@@ -40,6 +46,18 @@ export class AuthorizationError extends CustomError {
 export class DatabaseError extends CustomError {
     constructor(message : string) {
         super(message, 400)
+    }
+}
+
+export class PlayerNotFoundError extends CustomError {
+    constructor(message: string) {
+        super(message, 204)
+    }
+}
+
+export class RoomNotFoundError extends CustomError {
+    constructor(message: string) {
+        super(message, 204)
     }
 }
 

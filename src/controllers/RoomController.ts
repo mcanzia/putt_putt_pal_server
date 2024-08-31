@@ -63,6 +63,20 @@ export class RoomController {
         }
     }
 
+    async endGame(request: Request, response: Response, next: NextFunction) {
+        try {
+            Logger.info(`Ending game: ${JSON.stringify(request.body)}`);
+            const endGameDetails : RoomDTO = request.body;
+            const room : RoomDTO = await this.roomDao.updateRoom(endGameDetails.id, endGameDetails);
+            this.io.to(room.id).emit('roomUpdated', room);
+            this.io.to(room.id).emit('endGame');
+            response.status(200).send();
+        } catch (error) {
+            Logger.error("Error updating room", error);
+            response.status((error as CustomError).statusCode).send((error as CustomError).message);
+        }
+    }
+
     async updateRoom(request: Request, response: Response, next: NextFunction) {
         try {
             Logger.info(`Updating room: ${JSON.stringify(request.body)}`);

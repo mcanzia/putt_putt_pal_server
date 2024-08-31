@@ -6,5 +6,6 @@ export const TYPES = {
     PlayerController: Symbol.for("PlayerController"),
     HoleDao: Symbol.for("HoleDao"),
     HoleController: Symbol.for("HoleController"),
-    PlayerColorController: Symbol.for("PlayerColorController")
+    PlayerColorController: Symbol.for("PlayerColorController"),
+    SocketController: Symbol.for("SocketController")
 };

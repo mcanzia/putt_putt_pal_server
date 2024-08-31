@@ -1,6 +1,6 @@
 import { db } from '../configs/firebase';
 import { PlayerDTO } from '../models/dto/PlayerDTO';
-import { DatabaseError } from '../util/error/CustomError';
+import { DatabaseError, PlayerNotFoundError } from '../util/error/CustomError';
 import { inject, injectable } from 'inversify';
 import { TYPES } from '../configs/types';
 import { Server } from 'socket.io';
@@ -8,8 +8,8 @@ import { getCachedValue, setCachedValue, deleteCachedValue } from '../util/cache
 
 @injectable()
 export class PlayerDao {
-    
-    constructor(@inject(TYPES.SocketIO) private io: Server) {}
+
+    constructor(@inject(TYPES.SocketIO) private io: Server) { }
 
     async getPlayers(roomId: string) {
         try {
@@ -50,9 +50,9 @@ export class PlayerDao {
 
             const playerRef = db.ref(`rooms/${roomId}/players/${playerId}`);
             const snapshot = await playerRef.once('value');
-    
+
             if (!snapshot.exists()) {
-                throw new Error('No such player found in the specified room.');
+                throw new PlayerNotFoundError('No such player found in the specified room.');
             }
 
             const playerData = snapshot.val();
@@ -69,6 +69,52 @@ export class PlayerDao {
 
             return player;
         } catch (error) {
+            if (error instanceof PlayerNotFoundError) {
+                throw error;
+            }
+            throw new DatabaseError("Could not retrieve player from database: " + error);
+        }
+    }
+
+    async getHostPlayer(roomId: string): Promise<PlayerDTO> {
+        try {
+            const cacheKey = `player:${roomId}:host`;
+            const cachedPlayer = await getCachedValue(cacheKey);
+            if (cachedPlayer) {
+                return JSON.parse(cachedPlayer);
+            }
+
+            const playerRef = db.ref(`rooms/${roomId}/players`);
+            const snapshot = await playerRef.orderByChild('isHost').equalTo(true).once('value');
+
+            if (!snapshot.exists()) {
+                throw new PlayerNotFoundError('No such player found in the specified room.');
+            }
+
+            const playerData = snapshot.val();
+            let player : PlayerDTO = playerData;
+
+            for (const key in playerData) {
+                if (playerData.hasOwnProperty(key)) {
+                    const data = playerData[key];
+                    player = new PlayerDTO(
+                        data.id,
+                        data.name,
+                        data.isHost,
+                        data.color
+                    );
+                    break;
+                }
+            }
+            await setCachedValue(cacheKey, JSON.stringify(player), {
+                EX: 60
+            });
+
+            return player;
+        } catch (error) {
+            if (error instanceof PlayerNotFoundError) {
+                throw error;
+            }
             throw new DatabaseError("Could not retrieve player from database: " + error);
         }
     }

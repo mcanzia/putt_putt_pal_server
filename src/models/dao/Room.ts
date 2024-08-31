@@ -9,17 +9,19 @@ export class Room {
     holes: Map<String, Hole>;
     allPlayersJoined: boolean;
     numberOfHoles: number;
+    isFinished: boolean;
 
-    constructor(roomCode : string, players: Map<String, Player>, holes : Map<String, Hole>, allPlayersJoined: boolean, numberOfHoles: number) {
+    constructor(roomCode : string, players: Map<String, Player>, holes : Map<String, Hole>, allPlayersJoined: boolean, numberOfHoles: number, isFinished: boolean) {
         this.roomCode = roomCode;
         this.players = players;
         this.holes = holes;
         this.allPlayersJoined = allPlayersJoined;
         this.numberOfHoles = numberOfHoles;
+        this.isFinished = isFinished;
     }
 
     static createBaseRoom() : Room {
-        return new Room(Room.createRandomRoomCode(), new Map(), new Map(), false, 0);
+        return new Room(Room.createRandomRoomCode(), new Map(), new Map(), false, 0, false);
     }
 
     static createRandomRoomCode() : string {
@@ -42,6 +44,7 @@ export class Room {
             holes: Object.fromEntries(this.holes),
             allPlayersJoined: this.allPlayersJoined,
             numberOfHoles: this.numberOfHoles,
+            isFinished: this.isFinished,
         };
     }
 }

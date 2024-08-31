@@ -10,18 +10,20 @@ export class RoomDTO {
     holes: Map<String, HoleDTO>;
     allPlayersJoined: boolean;
     numberOfHoles: number;
+    isFinished: boolean;
 
-    constructor(id : string, roomCode : string, players: Map<String, PlayerDTO>, holes : Map<String, HoleDTO>, allPlayersJoined : boolean, numberOfHoles: number) {
+    constructor(id : string, roomCode : string, players: Map<String, PlayerDTO>, holes : Map<String, HoleDTO>, allPlayersJoined : boolean, numberOfHoles: number, isFinished: boolean) {
         this.id = id;
         this.roomCode = roomCode;
         this.players = players;
         this.holes = holes;
         this.allPlayersJoined = allPlayersJoined;
         this.numberOfHoles = numberOfHoles;
+        this.isFinished = isFinished;
     }
 
     static createBaseRoom() : RoomDTO {
-        return new RoomDTO('', RoomDTO.createRandomRoomCode(), new Map(), new Map(), false, 0);
+        return new RoomDTO('', RoomDTO.createRandomRoomCode(), new Map(), new Map(), false, 0, false);
     }
 
     static createRandomRoomCode() : string {
@@ -44,6 +46,7 @@ export class RoomDTO {
             holes: Object.fromEntries(this.holes),
             allPlayersJoined: this.allPlayersJoined,
             numberOfHoles: this.numberOfHoles,
+            isFinished: this.isFinished,
         };
     }
 }

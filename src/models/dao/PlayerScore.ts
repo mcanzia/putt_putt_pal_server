@@ -1,5 +1,3 @@
-import { Player } from "./Player";
-
 export class PlayerScore {
 
     score: number;

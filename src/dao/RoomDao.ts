@@ -1,17 +1,18 @@
 import { db } from '../configs/firebase';
 import { JoinRoomDetails } from '../models/dao/JoinRoomDetails';
 import { LeaveRoomDetails } from '../models/dto/LeaveRoomDetails';
-import { CustomError, DatabaseError, DuplicateColorError, DuplicateNameError, NotFoundError } from '../util/error/CustomError';
+import { CustomError, DatabaseError, DuplicateColorError, DuplicateNameError, NotFoundError, RoomNotFoundError, TooManyPlayersError } from '../util/error/CustomError';
 import { PlayerDTO } from '../models/dto/PlayerDTO';
 import { RoomDTO } from '../models/dto/RoomDTO';
 import { deleteCachedValue, getCachedValue, setCachedValue } from '../util/cache/useCache';
 import _ from 'lodash';
 import { PlayerScoreDTO } from '../models/dto/PlayerScoreDTO';
 import { injectable } from 'inversify';
+import { io, socketRoomMap } from '../socket';
 
 @injectable()
 export class RoomDao {
-    constructor() {}
+    constructor() { }
 
     async getRooms() {
         try {
@@ -30,9 +31,9 @@ export class RoomDao {
             if (roomsData) {
                 Object.keys(roomsData).forEach(key => {
                     const currentRoom = roomsData[key];
-                    const room: RoomDTO = new RoomDTO(key, currentRoom.roomCode, 
+                    const room: RoomDTO = new RoomDTO(key, currentRoom.roomCode,
                         currentRoom.players, currentRoom.holes, currentRoom.allPlayersJoined,
-                        currentRoom.numberOfHoles);
+                        currentRoom.numberOfHoles, currentRoom.isFinished);
                     rooms.push(room);
                 });
             }
@@ -60,14 +61,14 @@ export class RoomDao {
             const roomObject = snapshot.val();
 
             if (!roomObject) {
-                throw new Error('Room not found');
+                throw new RoomNotFoundError('Room not found');
             }
 
             const roomId = Object.keys(roomObject)[0];
             const roomData = roomObject[roomId];
 
-            const room = new RoomDTO(roomId, roomData.roomCode, roomData.players, roomData.holes, 
-                roomData.allPlayersJoined, roomData.numberOfHoles);
+            const room = new RoomDTO(roomId, roomData.roomCode, roomData.players, roomData.holes,
+                roomData.allPlayersJoined, roomData.numberOfHoles, roomData.isFinished);
 
             await setCachedValue(cacheKey, JSON.stringify(room), {
                 EX: 60
@@ -75,6 +76,44 @@ export class RoomDao {
 
             return room;
         } catch (error) {
+            if (error instanceof RoomNotFoundError) {
+                throw error;
+            }
+            throw new DatabaseError("Could not retrieve room from database: " + error);
+        }
+    }
+
+    async getRoomById(id: string) {
+        try {
+            // const cacheKey = `room:${id}`;
+            // const cachedRoom = await getCachedValue(cacheKey);
+            // if (cachedRoom) {
+            //     return JSON.parse(cachedRoom);
+            // }
+
+            const roomsRef = db.ref('rooms');
+            const snapshot = await roomsRef.orderByChild('id').equalTo(id).once('value');
+            const roomObject = snapshot.val();
+
+            if (!roomObject) {
+                throw new RoomNotFoundError('Room not found');
+            }
+
+            const roomId = Object.keys(roomObject)[0];
+            const roomData = roomObject[roomId];
+
+            const room = new RoomDTO(roomId, roomData.roomCode, roomData.players, roomData.holes,
+                roomData.allPlayersJoined, roomData.numberOfHoles, roomData.isFinished);
+
+            // await setCachedValue(cacheKey, JSON.stringify(room), {
+            //     EX: 60
+            // });
+
+            return room;
+        } catch (error) {
+            if (error instanceof RoomNotFoundError) {
+                throw error;
+            }
             throw new DatabaseError("Could not retrieve room from database: " + error);
         }
     }
@@ -86,14 +125,14 @@ export class RoomDao {
 
             room.id = newRoomRef.key!;
 
-            await newRoomRef.set({...room, lastActivity: Date.now()});
+            await newRoomRef.set({ ...room, lastActivity: Date.now() });
 
             await deleteCachedValue('rooms');
 
             const newRoomSnapshot = await roomsRef.child(newRoomRef.key!).once('value');
             const newRoom = newRoomSnapshot.val();
 
-            return {...newRoom, players: room.players};
+            return { ...newRoom, players: room.players };
         } catch (error) {
             throw new DatabaseError("Could not add room to database: " + error);
         }
@@ -104,21 +143,21 @@ export class RoomDao {
             const roomsRef = db.ref('rooms');
             const roomSnapshot = await roomsRef.child(startGameDetails.id).once('value');
             const room = roomSnapshot.val();
-    
+
             if (!room) {
                 throw new Error('Room not found');
             }
-            
+
             const holesRef = roomsRef.child(`${startGameDetails.id}/holes`);
-    
+
             const newHoles = Array.from({ length: startGameDetails.numberOfHoles }, (_, index) => {
                 const holeNumber = index + 1;
-                const playerScores : Array<PlayerScoreDTO> = [];
+                const playerScores: Array<PlayerScoreDTO> = [];
                 Object.entries(room.players).forEach(([key]) => {
                     const playerScoreRef = holesRef.push();
                     playerScores.push(new PlayerScoreDTO(playerScoreRef.key!, 0, key))
                 });
-    
+
                 const holeRef = holesRef.push();
                 return {
                     id: holeRef.key,
@@ -126,7 +165,7 @@ export class RoomDao {
                     playerScores: playerScores
                 };
             });
-    
+
             for (const hole of newHoles) {
                 await holesRef.child(hole.id!).set(hole);
             }
@@ -137,12 +176,12 @@ export class RoomDao {
 
             await deleteCachedValue(`room:${room.roomCode}`);
             await deleteCachedValue('rooms');
-    
+
             const updatedRoomSnapshot = await roomsRef.child(startGameDetails.id).once('value');
             const updatedRoomData = updatedRoomSnapshot.val();
-    
+
             return updatedRoomData;
-    
+
         } catch (error) {
             throw new DatabaseError("Could not start game: " + error);
         }
@@ -158,7 +197,7 @@ export class RoomDao {
                 delete updatedRoom.players;
             }
 
-            await roomRef.update({...updatedRoom, lastActivity: Date.now()});
+            await roomRef.update({ ...updatedRoom, lastActivity: Date.now() });
 
             const updates: { [key: string]: any } = {};
 
@@ -170,7 +209,7 @@ export class RoomDao {
 
             await deleteCachedValue(`room:${roomCopy.roomCode}`);
             await deleteCachedValue('rooms');
-    
+
             const updatedRoomSnapshot = await roomRef.once('value');
             const updatedRoomData = updatedRoomSnapshot.val();
 
@@ -197,8 +236,14 @@ export class RoomDao {
                 new Map(Object.entries(roomData.players! || {})),
                 new Map(Object.entries(roomData.holes! || {})),
                 roomData.allPlayersJoined,
-                roomData.numberOfHoles
+                roomData.numberOfHoles,
+                roomData.isFinished
             );
+
+
+            if (room.players!.size >= 12) {
+                throw new TooManyPlayersError();
+            }
 
             for (const player of room.players!.values()) {
                 if (player.name === joinDetails.playerName) {
@@ -244,7 +289,8 @@ export class RoomDao {
                 new Map(Object.entries(roomData.players || {})),
                 new Map(Object.entries(roomData.holes || {})),
                 roomData.allPlayersJoined,
-                roomData.numberOfHoles
+                roomData.numberOfHoles,
+                roomData.isFinished
             );
 
             const playersRef = roomsRef.child(`${roomKey}/players`);
@@ -273,6 +319,24 @@ export class RoomDao {
             const roomRef = db.ref(`rooms/${roomId}`);
             const roomSnapshot = await roomRef.once('value');
             const roomData = roomSnapshot.val();
+            
+            const socketsToDisconnect: Array<any> = [];
+
+            socketRoomMap.forEach((playerRoom, socketId) => {
+                console.log('DELETE INFO', playerRoom, socketId);
+                if (playerRoom.roomId === roomId) {
+                    const socket = io.sockets.sockets.get(socketId);
+                    if (socket) {
+                        socket.emit('roomDeleted', { roomId });
+                        socketsToDisconnect.push(socket);
+                    }
+                }
+            });
+
+            for (const socket of socketsToDisconnect) {
+                socketRoomMap.delete(socket.id);
+                socket.disconnect(true);
+            }
 
             await roomRef.remove();
 
@@ -287,12 +351,12 @@ export class RoomDao {
         const roomsRef = db.ref('rooms');
         const now = Date.now();
         const oneHourAgo = now - 3600000;
-    
+
         roomsRef.once('value').then(snapshot => {
             snapshot.forEach(childSnapshot => {
                 const roomId = childSnapshot.key;
                 const roomData = childSnapshot.val();
-    
+
                 if (roomData.lastActivity && roomData.lastActivity < oneHourAgo) {
                     console.log(`Deleting inactive room ${roomId}`);
                     this.deleteRoom(roomId!);
